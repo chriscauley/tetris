@@ -18,6 +18,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@game': fileURLToPath(new URL('../game', import.meta.url)),
     },
   },
 })

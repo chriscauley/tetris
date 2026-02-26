@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { createGame } from './tetris.js'
+import { createGame } from '@game/tetris.js'
 
 const canvas = ref(null)
 const showSeedDialog = ref(false)

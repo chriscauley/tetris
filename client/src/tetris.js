@@ -274,7 +274,7 @@ class InputSystem {
   }
 
   update(world, dt) {
-    for (const code of ['ArrowLeft', 'ArrowRight']) {
+    for (const code of ['ArrowLeft', 'ArrowRight', 'ArrowDown']) {
       if (this.keys[code] && this.das[code]) {
         this.das[code].timer += dt;
         if (!this.das[code].fired && this.das[code].timer >= this.dasDelay) {
@@ -339,6 +339,12 @@ class MovementSystem {
           break;
         case 'softdrop':
           drop.softDrop = true;
+          if (canMove(board, piece.type, piece.rotation, piece.x, piece.y + 1)) {
+            piece.y++;
+            const score = world.getComponent(boardId, 'Score');
+            score.score++;
+            drop.timer = 0;
+          }
           break;
         case 'softdrop_release':
           drop.softDrop = false;
@@ -443,14 +449,12 @@ class GravitySystem {
     const board = world.getComponent(boardId, 'Board');
     const score = world.getComponent(boardId, 'Score');
 
-    const interval = drop.softDrop ? Math.min(drop.interval, 50) : drop.interval;
     drop.timer += dt;
 
-    while (drop.timer >= interval) {
-      drop.timer -= interval;
+    while (drop.timer >= drop.interval) {
+      drop.timer -= drop.interval;
       if (canMove(board, piece.type, piece.rotation, piece.x, piece.y + 1)) {
         piece.y++;
-        if (drop.softDrop) score.score++;
       } else {
         drop.timer = 0;
         break;

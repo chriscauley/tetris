@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+* {
+  @apply m-0 p-0 box-border;
+}
+
+body {
+  @apply overflow-hidden bg-gray-900;
+}
+
+canvas {
+  @apply block;
+}
+
+.side-panel {
+  @apply select-none whitespace-pre;
+}
+
+.side-panel .label {
+  @apply font-bold text-neutral-400;
+}
+
+.side-panel .value {
+  @apply font-bold text-white;
+}
+
+.controls-help {
+  @apply border-collapse text-neutral-600;
+}
+
+.controls-help td {
+  @apply py-0.5;
+}
+
+.controls-help td:first-child {
+  @apply text-right pr-3 text-neutral-500;
+}
+
+.controls-help td:last-child {
+  @apply text-left;
+}
+
+.game-over-overlay {
+  @apply fixed flex flex-col items-center justify-center z-5 bg-black/75;
+}
+
+.game-over-text {
+  @apply text-white font-mono font-bold;
+}
+
+.game-over-sub {
+  @apply text-white font-mono mt-4;
+}
+
+.new-game-btn {
+  @apply fixed top-3 right-3 px-4 py-2 text-white rounded font-mono text-sm cursor-pointer bg-neutral-800 border border-neutral-600;
+}
+
+.new-game-btn:hover {
+  @apply bg-neutral-700;
+}
+
+.seed-dialog-backdrop {
+  @apply fixed inset-0 bg-black/60;
+}
+
+.seed-dialog {
+  @apply fixed inset-0 flex items-center justify-center z-10 border-none bg-transparent p-0;
+}
+
+.seed-dialog-content {
+  @apply relative text-white p-6 rounded-lg font-mono z-1 bg-neutral-800 border border-neutral-600;
+  min-width: 300px;
+}
+
+.seed-dialog-content h3 {
+  @apply mb-4;
+}
+
+.seed-dialog-content label {
+  @apply block mb-4 text-neutral-400;
+  font-size: 13px;
+}
+
+.seed-dialog-content input {
+  @apply block w-full mt-1.5 p-2 text-white rounded font-mono text-sm bg-gray-900 border border-neutral-600;
+}
+
+.seed-dialog-content input:focus {
+  @apply outline-none border-neutral-400;
+}
+
+.seed-dialog-actions {
+  @apply flex justify-end gap-2;
+}
+
+.seed-dialog-actions button {
+  @apply px-4 py-1.5 rounded font-mono cursor-pointer border border-neutral-600;
+  font-size: 13px;
+}
+
+.seed-dialog-actions button[type="button"] {
+  @apply bg-neutral-700 text-neutral-300;
+}
+
+.seed-dialog-actions button[type="submit"] {
+  @apply text-white bg-indigo-900;
+}
+
+.seed-dialog-actions button:hover {
+  @apply brightness-120;
+}

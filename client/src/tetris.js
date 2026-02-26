@@ -681,8 +681,8 @@ class RenderSystem {
     ctx.font = `${helpSize}px monospace`;
     const hy = oy + board.height * cs - helpSize * 7;
     const helpLines = [
-      '\u2190\u2192  Move', '\u2191 X  Rotate CW', 'Z    Rotate CCW',
-      '\u2193    Soft Drop', 'Space Hard Drop', 'C    Hold',
+      '\u2190\u2192    Move', '\u2191 X   Rotate CW', 'Z     Rotate CCW',
+      '\u2193     Soft Drop', 'Space Hard Drop', 'C     Hold',
     ];
     for (let i = 0; i < helpLines.length; i++) {
       ctx.fillText(helpLines[i], leftX, hy + i * helpSize * 1.5);

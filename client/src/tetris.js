@@ -566,6 +566,13 @@ class RenderSystem {
     const nextQueue = world.getComponent(boardId, 'NextQueue');
 
     this.resize(board);
+
+    world.ui = {
+      cellSize: this.cellSize,
+      boardX: this.boardOffsetX,
+      boardY: this.boardOffsetY,
+    };
+
     const ctx = this.ctx;
     const cs = this.cellSize;
     const ox = this.boardOffsetX;
@@ -644,65 +651,17 @@ class RenderSystem {
     // Side panel positions
     const rightX = ox + board.width * cs + cs * 1.5;
     const leftX = ox - cs * 5.5;
-    const fontSize = Math.max(11, cs * 0.55);
-    ctx.font = `bold ${fontSize}px monospace`;
-    ctx.textAlign = 'left';
 
-    // Next queue
-    ctx.fillStyle = '#aaa';
-    ctx.fillText('NEXT', rightX, oy + cs * 0.8);
+    // Next queue (mini pieces only)
     if (nextQueue) {
       for (let i = 0; i < Math.min(5, nextQueue.queue.length); i++) {
         this.drawMiniPiece(rightX, oy + cs * 1.2 + i * cs * 2.8, cs * 0.65, nextQueue.queue[i]);
       }
     }
 
-    // Hold piece
-    ctx.fillStyle = '#aaa';
-    ctx.fillText('HOLD', leftX, oy + cs * 0.8);
+    // Hold piece (mini piece only)
     if (hold && hold.type) {
       this.drawMiniPiece(leftX, oy + cs * 1.2, cs * 0.65, hold.type, hold.used ? 0.35 : 1);
-    }
-
-    // Score info
-    ctx.fillStyle = '#aaa';
-    const sy = oy + cs * 6;
-    ctx.fillText('SCORE', leftX, sy);
-    ctx.fillStyle = '#fff';
-    ctx.fillText(score ? score.score.toString() : '0', leftX, sy + fontSize * 1.4);
-    ctx.fillStyle = '#aaa';
-    ctx.fillText('LINES', leftX, sy + fontSize * 3.2);
-    ctx.fillStyle = '#fff';
-    ctx.fillText(score ? score.lines.toString() : '0', leftX, sy + fontSize * 4.6);
-    ctx.fillStyle = '#aaa';
-    ctx.fillText('LEVEL', leftX, sy + fontSize * 6.4);
-    ctx.fillStyle = '#fff';
-    ctx.fillText(score ? score.level.toString() : '1', leftX, sy + fontSize * 7.8);
-
-    // Controls help
-    ctx.fillStyle = '#555';
-    const helpSize = Math.max(9, cs * 0.35);
-    ctx.font = `${helpSize}px monospace`;
-    const hy = oy + board.height * cs - helpSize * 7;
-    const helpLines = [
-      '\u2190\u2192    Move', '\u2191 X   Rotate CW', 'Z     Rotate CCW',
-      '\u2193     Soft Drop', 'Space Hard Drop', 'C     Hold',
-    ];
-    for (let i = 0; i < helpLines.length; i++) {
-      ctx.fillText(helpLines[i], leftX, hy + i * helpSize * 1.5);
-    }
-
-    // Game over overlay
-    if (state && state.phase === 'gameover') {
-      ctx.fillStyle = 'rgba(0,0,0,0.75)';
-      ctx.fillRect(ox, oy, board.width * cs, board.height * cs);
-      ctx.fillStyle = '#fff';
-      ctx.font = `bold ${cs * 1.1}px monospace`;
-      ctx.textAlign = 'center';
-      ctx.fillText('GAME OVER', ox + board.width * cs / 2, oy + board.height * cs / 2 - cs);
-      ctx.font = `${cs * 0.55}px monospace`;
-      ctx.fillText('Press R to restart', ox + board.width * cs / 2, oy + board.height * cs / 2 + cs);
-      ctx.textAlign = 'left';
     }
   }
 

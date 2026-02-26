@@ -1,51 +1,63 @@
-// RecorderSystem — runs after InputSystem, snapshots each frame's dt + actions.
+// RecorderSystem — only records frames with actions, tracking ticks between them.
 export class RecorderSystem {
   constructor() {
     this.frames = [];
+    this.ticksSinceLastAction = 0;
   }
 
-  update(world, dt) {
+  update(world) {
     const boardId = world.query('Board', 'Input')[0];
     if (boardId === undefined) return;
     const input = world.getComponent(boardId, 'Input');
-    this.frames.push([dt, ...input.actions]);
+    this.ticksSinceLastAction++;
+    if (input.actions.length > 0) {
+      this.frames.push([this.ticksSinceLastAction, ...input.actions]);
+      this.ticksSinceLastAction = 0;
+    }
   }
 
   getRecording(seed) {
-    return { seed, frames: this.frames };
+    const frames = [...this.frames];
+    if (this.ticksSinceLastAction > 0) {
+      frames.push([this.ticksSinceLastAction]);
+    }
+    return { seed, frames };
   }
 
   reset() {
     this.frames = [];
+    this.ticksSinceLastAction = 0;
   }
 }
 
-// ReplaySystem — replays a recording by injecting actions into Input each tick.
+// ReplaySystem — counts down ticks, injects actions when a frame's count is reached.
 export class ReplaySystem {
   constructor(frames) {
     this.frames = frames;
-    this.tick = 0;
+    this.frameIndex = 0;
+    this.ticksRemaining = frames.length > 0 ? frames[0][0] : 0;
   }
 
   get done() {
-    return this.tick >= this.frames.length;
-  }
-
-  getDt() {
-    if (this.done) return 0;
-    return this.frames[this.tick][0];
+    return this.frameIndex >= this.frames.length;
   }
 
   update(world) {
     if (this.done) return;
-    const boardId = world.query('Board', 'Input')[0];
-    if (boardId === undefined) return;
-    const input = world.getComponent(boardId, 'Input');
-    const frame = this.frames[this.tick];
-    // frame[0] is dt, rest are actions
-    for (let i = 1; i < frame.length; i++) {
-      input.actions.push(frame[i]);
+    this.ticksRemaining--;
+    if (this.ticksRemaining <= 0) {
+      const boardId = world.query('Board', 'Input')[0];
+      if (boardId !== undefined) {
+        const input = world.getComponent(boardId, 'Input');
+        const frame = this.frames[this.frameIndex];
+        for (let i = 1; i < frame.length; i++) {
+          input.actions.push(frame[i]);
+        }
+      }
+      this.frameIndex++;
+      if (this.frameIndex < this.frames.length) {
+        this.ticksRemaining = this.frames[this.frameIndex][0];
+      }
     }
-    this.tick++;
   }
 }

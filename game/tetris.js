@@ -5,6 +5,8 @@ import { InputSystem, SpawnSystem, MovementSystem, GravitySystem, LockSystem, Li
 import { RenderSystem } from './renderer.js';
 import { RecorderSystem, ReplaySystem } from './recorder.js';
 
+export const TICK_MS = 16;
+
 export function createGame(canvas, { boardWidth = 10, boardHeight = 20, seed, mode = 'play', recording } = {}) {
   const rng = seedrandom(seed, { state: true });
   const world = new World();
@@ -69,15 +71,9 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 20, seed, mo
     return recorderSystem.getRecording(world.seed);
   };
 
-  world.replayDt = function () {
-    if (!replaySystem || replaySystem.done) return null;
-    return replaySystem.getDt();
-  };
-
   world.replayTick = function () {
     if (!replaySystem || replaySystem.done) return false;
-    const dt = replaySystem.getDt();
-    world.update(dt);
+    world.update(TICK_MS);
     return !replaySystem.done;
   };
 

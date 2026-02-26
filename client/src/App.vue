@@ -1,11 +1,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { createGame } from '@game/tetris.js'
+import { createGame, TICK_MS } from '@game/tetris.js'
 
 const canvas = ref(null)
 const showSeedDialog = ref(false)
 const showStateDialog = ref(false)
+const showReplayDialog = ref(false)
 const stateJson = ref('')
+const replayJson = ref('')
 const seedInput = ref('')
 let world = null
 let paused = false
@@ -92,11 +94,16 @@ function stopGameLoop() {
 function startGameLoop() {
   stopGameLoop()
   let lastTime = performance.now()
+  let accumulator = 0
   function loop(time) {
-    const dt = Math.round(Math.min(time - lastTime, 100))
+    const delta = Math.min(time - lastTime, 100)
     lastTime = time
     if (!paused) {
-      world.update(dt)
+      accumulator += delta
+      while (accumulator >= TICK_MS) {
+        accumulator -= TICK_MS
+        world.update(TICK_MS)
+      }
       readWorldState()
     }
     gameAnimId = requestAnimationFrame(loop)
@@ -155,9 +162,34 @@ function closeState() {
   paused = false
 }
 
-function copyReplay() {
-  if (!world) return
+function getFullRecording() {
+  if (!world) return null
   const rec = world.getRecording()
+  if (!rec) return null
+  const board = world.getComponent(world.boardId, 'Board')
+  const grid = {}
+  board.grid.forEach((row, y) => {
+    if (row.some(cell => cell !== null)) grid[y] = row.map(c => c ?? 0)
+  })
+  rec.expectedGrid = grid
+  return rec
+}
+
+function showReplay() {
+  const rec = getFullRecording()
+  if (!rec) return
+  paused = true
+  replayJson.value = JSON.stringify(rec, null, 2)
+  showReplayDialog.value = true
+}
+
+function closeReplay() {
+  showReplayDialog.value = false
+  paused = false
+}
+
+function copyReplay() {
+  const rec = getFullRecording()
   if (!rec) return
   navigator.clipboard.writeText(JSON.stringify(rec))
 }
@@ -181,25 +213,22 @@ function startReplay(recording) {
   })
   replaying.value = true
 
-  let elapsed = 0
   let lastTime = performance.now()
+  let accumulator = 0
 
   function replayLoop(time) {
     const delta = Math.min(time - lastTime, 100)
     lastTime = time
-    elapsed += delta
+    accumulator += delta
 
-    // Advance frames whose recorded dt fits within accumulated real time
-    let nextDt = world.replayDt()
-    while (nextDt !== null && elapsed >= nextDt) {
-      elapsed -= nextDt
+    while (accumulator >= TICK_MS) {
+      accumulator -= TICK_MS
       const more = world.replayTick()
       if (!more) {
         readWorldState()
         stopReplay()
         return
       }
-      nextDt = world.replayDt()
     }
 
     readWorldState()
@@ -277,6 +306,7 @@ onMounted(() => {
     <button class="new-game-btn" @click="copyState">Copy State</button>
     <button class="new-game-btn" @click="showState">Show State</button>
     <button class="new-game-btn" @click="copyReplay">Copy Replay</button>
+    <button class="new-game-btn" @click="showReplay">Show Replay</button>
     <button class="new-game-btn" @click="loadReplay">Load Replay</button>
   </div>
 
@@ -287,6 +317,17 @@ onMounted(() => {
       <pre class="state-pre">{{ stateJson }}</pre>
       <div class="seed-dialog-actions">
         <button type="button" @click="closeState">Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog :open="showReplayDialog" class="seed-dialog" v-if="showReplayDialog">
+    <div class="seed-dialog-backdrop" @click="closeReplay"></div>
+    <div class="seed-dialog-content state-dialog-content">
+      <h3>Replay Data</h3>
+      <pre class="state-pre">{{ replayJson }}</pre>
+      <div class="seed-dialog-actions">
+        <button type="button" @click="closeReplay">Close</button>
       </div>
     </div>
   </dialog>

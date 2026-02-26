@@ -17,7 +17,16 @@ function runReplay(recording) {
     recording,
   })
   while (world.replayTick()) { /* advance until done */ }
-  return world.exportState()
+  return world
+}
+
+function getGrid(world) {
+  const board = world.getComponent(world.boardId, 'Board')
+  const grid = {}
+  board.grid.forEach((row, y) => {
+    if (row.some(cell => cell !== null)) grid[y] = row.map(c => c ?? 0)
+  })
+  return grid
 }
 
 describe('replay determinism', () => {
@@ -30,9 +39,17 @@ describe('replay determinism', () => {
   it.each(replays.map(r => [r.name, r.recording]))(
     '%s produces identical state on two runs',
     (_name, recording) => {
-      const state1 = runReplay(recording)
-      const state2 = runReplay(recording)
+      const state1 = runReplay(recording).exportState()
+      const state2 = runReplay(recording).exportState()
       expect(state1).toEqual(state2)
+    },
+  )
+
+  it.each(replays.filter(r => r.recording.expectedGrid).map(r => [r.name, r.recording]))(
+    '%s produces expected grid',
+    (_name, recording) => {
+      const world = runReplay(recording)
+      expect(getGrid(world)).toEqual(recording.expectedGrid)
     },
   )
 })

@@ -682,7 +682,7 @@ class RenderSystem {
     const hy = oy + board.height * cs - helpSize * 7;
     const helpLines = [
       '\u2190\u2192  Move', '\u2191 X  Rotate CW', 'Z    Rotate CCW',
-      '\u2193    Soft Drop', 'Space Hard Drop', 'C    Hold', 'R    Restart',
+      '\u2193    Soft Drop', 'Space Hard Drop', 'C    Hold',
     ];
     for (let i = 0; i < helpLines.length; i++) {
       ctx.fillText(helpLines[i], leftX, hy + i * helpSize * 1.5);
@@ -781,21 +781,29 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 20, seed } =
   world.addSystem(new LineClearSystem());
   world.addSystem(new RenderSystem(canvas));
 
+  function restart(newSeed) {
+    for (const id of world.query('ActivePiece')) world.destroyEntity(id);
+    const board = world.getComponent(boardId, 'Board');
+    for (let y = 0; y < board.grid.length; y++) board.grid[y].fill(null);
+    const score = world.getComponent(boardId, 'Score');
+    Object.assign(score, { score: 0, lines: 0, level: 1 });
+    const state = world.getComponent(boardId, 'GameState');
+    Object.assign(state, { phase: 'playing', lockTimer: 0, lockResets: 0, hardDropping: false });
+    const nq = world.getComponent(boardId, 'NextQueue');
+    nq.queue = [];
+    nq.rng = seedrandom(newSeed);
+    world.seed = newSeed;
+    const hold = world.getComponent(boardId, 'HoldPiece');
+    Object.assign(hold, { type: null, used: false });
+  }
+
+  world.restart = restart;
+
   document.addEventListener('keydown', e => {
-    if (e.code === 'KeyR') {
+    if (e.key.toLowerCase() === 'r') {
       const state = world.getComponent(boardId, 'GameState');
       if (state.phase === 'gameover') {
-        for (const id of world.query('ActivePiece')) world.destroyEntity(id);
-        const board = world.getComponent(boardId, 'Board');
-        for (let y = 0; y < board.grid.length; y++) board.grid[y].fill(null);
-        const score = world.getComponent(boardId, 'Score');
-        Object.assign(score, { score: 0, lines: 0, level: 1 });
-        Object.assign(state, { phase: 'playing', lockTimer: 0, lockResets: 0, hardDropping: false });
-        const nq = world.getComponent(boardId, 'NextQueue');
-        nq.queue = [];
-        nq.rng = seedrandom(seed);
-        const hold = world.getComponent(boardId, 'HoldPiece');
-        Object.assign(hold, { type: null, used: false });
+        restart(seed);
       }
     }
   });

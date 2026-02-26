@@ -22,4 +22,7 @@ export default defineConfig({
       'seedrandom': fileURLToPath(new URL('./node_modules/seedrandom', import.meta.url)),
     },
   },
+  test: {
+    environment: 'node',
+  },
 })

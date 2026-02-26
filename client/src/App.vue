@@ -93,7 +93,7 @@ function startGameLoop() {
   stopGameLoop()
   let lastTime = performance.now()
   function loop(time) {
-    const dt = Math.min(time - lastTime, 100)
+    const dt = Math.round(Math.min(time - lastTime, 100))
     lastTime = time
     if (!paused) {
       world.update(dt)

@@ -9,6 +9,9 @@ const stateJson = ref('')
 const seedInput = ref('')
 let world = null
 let paused = false
+let gameAnimId = null
+let replayAnimId = null
+const replaying = ref(false)
 
 const cellSize = ref(0)
 const boardX = ref(0)
@@ -79,22 +82,38 @@ function readWorldState() {
   }
 }
 
+function stopGameLoop() {
+  if (gameAnimId) {
+    cancelAnimationFrame(gameAnimId)
+    gameAnimId = null
+  }
+}
+
+function startGameLoop() {
+  stopGameLoop()
+  let lastTime = performance.now()
+  function loop(time) {
+    const dt = Math.min(time - lastTime, 100)
+    lastTime = time
+    if (!paused) {
+      world.update(dt)
+      readWorldState()
+    }
+    gameAnimId = requestAnimationFrame(loop)
+  }
+  gameAnimId = requestAnimationFrame(loop)
+}
+
+let isPlayWorld = false
+
 function startGame(seed) {
-  if (world) {
+  stopReplay()
+  if (world && isPlayWorld) {
     world.restart(seed)
   } else {
     world = createGame(canvas.value, { seed })
-    let lastTime = performance.now()
-    function loop(time) {
-      const dt = Math.min(time - lastTime, 100)
-      lastTime = time
-      if (!paused) {
-        world.update(dt)
-        readWorldState()
-      }
-      requestAnimationFrame(loop)
-    }
-    requestAnimationFrame(loop)
+    isPlayWorld = true
+    startGameLoop()
   }
 }
 
@@ -134,6 +153,74 @@ function showState() {
 function closeState() {
   showStateDialog.value = false
   paused = false
+}
+
+function copyReplay() {
+  if (!world) return
+  const rec = world.getRecording()
+  if (!rec) return
+  navigator.clipboard.writeText(JSON.stringify(rec))
+}
+
+function stopReplay() {
+  if (replayAnimId) {
+    cancelAnimationFrame(replayAnimId)
+    replayAnimId = null
+  }
+  replaying.value = false
+}
+
+function startReplay(recording) {
+  stopReplay()
+  stopGameLoop()
+  isPlayWorld = false
+  world = createGame(canvas.value, {
+    seed: recording.seed,
+    mode: 'replay',
+    recording,
+  })
+  replaying.value = true
+
+  let elapsed = 0
+  let lastTime = performance.now()
+
+  function replayLoop(time) {
+    const delta = Math.min(time - lastTime, 100)
+    lastTime = time
+    elapsed += delta
+
+    // Advance frames whose recorded dt fits within accumulated real time
+    let nextDt = world.replayDt()
+    while (nextDt !== null && elapsed >= nextDt) {
+      elapsed -= nextDt
+      const more = world.replayTick()
+      if (!more) {
+        readWorldState()
+        stopReplay()
+        return
+      }
+      nextDt = world.replayDt()
+    }
+
+    readWorldState()
+    replayAnimId = requestAnimationFrame(replayLoop)
+  }
+
+  replayAnimId = requestAnimationFrame(replayLoop)
+}
+
+async function loadReplay() {
+  try {
+    const text = await navigator.clipboard.readText()
+    const recording = JSON.parse(text)
+    if (!recording.frames) {
+      alert('Invalid replay data')
+      return
+    }
+    startReplay(recording)
+  } catch {
+    alert('Could not read replay from clipboard')
+  }
 }
 
 onMounted(() => {
@@ -189,6 +276,8 @@ onMounted(() => {
     <button class="new-game-btn" @click="onNewGame">New Game</button>
     <button class="new-game-btn" @click="copyState">Copy State</button>
     <button class="new-game-btn" @click="showState">Show State</button>
+    <button class="new-game-btn" @click="copyReplay">Copy Replay</button>
+    <button class="new-game-btn" @click="loadReplay">Load Replay</button>
   </div>
 
   <dialog :open="showStateDialog" class="seed-dialog" v-if="showStateDialog">

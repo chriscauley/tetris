@@ -3,8 +3,9 @@ import { World } from './ecs.js';
 import { Components } from './components.js';
 import { InputSystem, SpawnSystem, MovementSystem, GravitySystem, LockSystem, LineClearSystem } from './systems.js';
 import { RenderSystem } from './renderer.js';
+import { RecorderSystem, ReplaySystem } from './recorder.js';
 
-export function createGame(canvas, { boardWidth = 10, boardHeight = 20, seed } = {}) {
+export function createGame(canvas, { boardWidth = 10, boardHeight = 20, seed, mode = 'play', recording } = {}) {
   const rng = seedrandom(seed, { state: true });
   const world = new World();
   world.seed = seed;
@@ -18,7 +19,18 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 20, seed } =
   world.addComponent(boardId, 'PieceTable', Components.PieceTable());
   world.addComponent(boardId, 'Input', Components.Input());
 
-  world.addSystem(new InputSystem());
+  let recorderSystem = null;
+  let replaySystem = null;
+
+  if (mode === 'replay' && recording) {
+    replaySystem = new ReplaySystem(recording.frames);
+    world.addSystem(replaySystem);
+  } else {
+    world.addSystem(new InputSystem());
+    recorderSystem = new RecorderSystem();
+    world.addSystem(recorderSystem);
+  }
+
   world.addSystem(new SpawnSystem());
   world.addSystem(new MovementSystem());
   world.addSystem(new GravitySystem());
@@ -46,8 +58,28 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 20, seed } =
     Object.assign(table, { pieces: {}, nextId: 1, freeIds: [] });
   }
 
-  world.restart = restart;
+  world.restart = function(newSeed) {
+    restart(newSeed);
+    if (recorderSystem) recorderSystem.reset();
+  };
   world.boardId = boardId;
+
+  world.getRecording = function () {
+    if (!recorderSystem) return null;
+    return recorderSystem.getRecording(world.seed);
+  };
+
+  world.replayDt = function () {
+    if (!replaySystem || replaySystem.done) return null;
+    return replaySystem.getDt();
+  };
+
+  world.replayTick = function () {
+    if (!replaySystem || replaySystem.done) return false;
+    const dt = replaySystem.getDt();
+    world.update(dt);
+    return !replaySystem.done;
+  };
 
   world.exportState = function () {
     const snapshot = {
@@ -114,7 +146,7 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 20, seed } =
     }
   };
 
-  if (typeof document !== 'undefined') {
+  if (typeof document !== 'undefined' && mode !== 'replay') {
     document.addEventListener('keydown', e => {
       if (e.key.toLowerCase() === 'r') {
         const state = world.getComponent(boardId, 'GameState');

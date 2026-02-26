@@ -31,8 +31,12 @@ export class SpawnSystem {
     }
 
     const score = world.getComponent(boardId, 'Score');
+    const table = world.getComponent(boardId, 'PieceTable');
+    const instanceId = table.freeIds.length > 0 ? table.freeIds.pop() : table.nextId++;
+    table.pieces[instanceId] = { type };
+
     const pieceId = world.createEntity();
-    world.addComponent(pieceId, 'ActivePiece', Components.ActivePiece(type, spawnX, spawnY));
+    world.addComponent(pieceId, 'ActivePiece', Components.ActivePiece(type, spawnX, spawnY, 0, instanceId));
     world.addComponent(pieceId, 'Drop', Components.Drop(getDropInterval(score.level)));
 
     state.phase = 'playing';
@@ -218,16 +222,21 @@ export class MovementSystem {
     if (!hold || hold.used) return;
     const piece = world.getComponent(pieceId, 'ActivePiece');
     const oldType = piece.type;
+    const oldPieceId = piece.pieceId;
 
     if (hold.type === null) {
       hold.type = oldType;
+      hold.pieceId = oldPieceId;
       world.destroyEntity(pieceId);
     } else {
       const swapType = hold.type;
+      const swapPieceId = hold.pieceId;
       hold.type = oldType;
+      hold.pieceId = oldPieceId;
       const spawnX = Math.floor((board.width - PIECE_SHAPES[swapType][0].length) / 2);
       const spawnY = board.bufferHeight - 2;
       piece.type = swapType;
+      piece.pieceId = swapPieceId;
       piece.x = spawnX;
       piece.y = spawnY;
       piece.rotation = 0;
@@ -297,7 +306,7 @@ export class LockSystem {
         const gx = piece.x + b.x;
         const gy = piece.y + b.y;
         if (gy >= 0 && gy < board.grid.length && gx >= 0 && gx < board.width) {
-          board.grid[gy][gx] = piece.type;
+          board.grid[gy][gx] = piece.pieceId;
         }
       }
       world.destroyEntity(pieceId);
@@ -332,6 +341,7 @@ export class LineClearSystem {
 
     const board = world.getComponent(boardId, 'Board');
     const score = world.getComponent(boardId, 'Score');
+    const table = world.getComponent(boardId, 'PieceTable');
 
     let linesCleared = 0;
     for (let y = board.grid.length - 1; y >= 0; y--) {
@@ -348,6 +358,31 @@ export class LineClearSystem {
       score.score += (points[linesCleared] || 800) * score.level;
       score.lines += linesCleared;
       score.level = Math.floor(score.lines / 10) + 1;
+
+      // Find piece IDs still on the board
+      const alive = new Set();
+      for (const row of board.grid) {
+        for (const cell of row) {
+          if (cell !== null) alive.add(cell);
+        }
+      }
+      // Also keep the held piece
+      const hold = world.getComponent(boardId, 'HoldPiece');
+      if (hold && hold.pieceId !== null) alive.add(hold.pieceId);
+      // Also keep the active piece (shouldn't exist here, but be safe)
+      const activeIds = world.query('ActivePiece');
+      for (const id of activeIds) {
+        const ap = world.getComponent(id, 'ActivePiece');
+        if (ap && ap.pieceId !== null) alive.add(ap.pieceId);
+      }
+
+      // Recycle dead IDs
+      for (const id of Object.keys(table.pieces)) {
+        if (!alive.has(Number(id))) {
+          delete table.pieces[id];
+          table.freeIds.push(Number(id));
+        }
+      }
     }
   }
 }

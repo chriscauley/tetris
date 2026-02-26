@@ -1,24 +1,35 @@
-export const PIECE_TYPES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
+// Piece IDs (1-indexed; 0/null = empty cell)
+export const I = 1;
+export const O = 2;
+export const T = 3;
+export const S = 4;
+export const Z = 5;
+export const J = 6;
+export const L = 7;
 
-export const PIECE_SHAPES = {
-  I: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
-  O: [[1,1],[1,1]],
-  T: [[0,1,0],[1,1,1],[0,0,0]],
-  S: [[0,1,1],[1,1,0],[0,0,0]],
-  Z: [[1,1,0],[0,1,1],[0,0,0]],
-  J: [[1,0,0],[1,1,1],[0,0,0]],
-  L: [[0,0,1],[1,1,1],[0,0,0]],
-};
+export const PIECE_TYPES = [I, O, T, S, Z, J, L];
 
-export const PIECE_COLORS = {
-  I: '#00f0f0',
-  O: '#f0f000',
-  T: '#a000f0',
-  S: '#00f000',
-  Z: '#f00000',
-  J: '#0000f0',
-  L: '#f0a000',
-};
+export const PIECE_SHAPES = [
+  null,
+  [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], // I
+  [[1,1],[1,1]],                                // O
+  [[0,1,0],[1,1,1],[0,0,0]],                    // T
+  [[0,1,1],[1,1,0],[0,0,0]],                    // S
+  [[1,1,0],[0,1,1],[0,0,0]],                    // Z
+  [[1,0,0],[1,1,1],[0,0,0]],                    // J
+  [[0,0,1],[1,1,1],[0,0,0]],                    // L
+];
+
+export const PIECE_COLORS = [
+  null,
+  '#00f0f0', // I
+  '#f0f000', // O
+  '#a000f0', // T
+  '#00f000', // S
+  '#f00000', // Z
+  '#0000f0', // J
+  '#f0a000', // L
+];
 
 function rotateMatrix(matrix) {
   const n = matrix.length;

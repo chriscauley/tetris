@@ -4,8 +4,8 @@ export const Components = {
     const grid = Array.from({ length: h + bufferHeight }, () => Array(w).fill(null));
     return { width: w, height: h, bufferHeight, grid };
   },
-  ActivePiece(type, x, y, rotation = 0) {
-    return { type, x, y, rotation };
+  ActivePiece(type, x, y, rotation = 0, pieceId = null) {
+    return { type, x, y, rotation, pieceId };
   },
   Drop(interval = 1000) {
     return { timer: 0, interval, softDrop: false };
@@ -17,7 +17,10 @@ export const Components = {
     return { queue: [], rng };
   },
   HoldPiece() {
-    return { type: null, used: false };
+    return { type: null, pieceId: null, used: false };
+  },
+  PieceTable() {
+    return { pieces: {}, nextId: 1, freeIds: [] };
   },
   GameState() {
     return {

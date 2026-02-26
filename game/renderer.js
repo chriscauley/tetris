@@ -19,6 +19,7 @@ export class RenderSystem {
     const state = world.getComponent(boardId, 'GameState');
     const hold = world.getComponent(boardId, 'HoldPiece');
     const nextQueue = world.getComponent(boardId, 'NextQueue');
+    const pieceTable = world.getComponent(boardId, 'PieceTable');
 
     this.resize(board);
 
@@ -60,11 +61,13 @@ export class RenderSystem {
     // Locked blocks
     for (let y = board.bufferHeight; y < board.grid.length; y++) {
       for (let x = 0; x < board.width; x++) {
-        if (board.grid[y][x] !== null) {
+        const cell = board.grid[y][x];
+        if (cell !== null) {
+          const entry = pieceTable.pieces[cell];
           this.drawBlock(
             ox + x * cs,
             oy + (y - board.bufferHeight) * cs,
-            cs, PIECE_COLORS[board.grid[y][x]]
+            cs, PIECE_COLORS[entry.type]
           );
         }
       }

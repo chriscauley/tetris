@@ -4,8 +4,11 @@ import { createGame } from '@game/tetris.js'
 
 const canvas = ref(null)
 const showSeedDialog = ref(false)
+const showStateDialog = ref(false)
+const stateJson = ref('')
 const seedInput = ref('')
 let world = null
+let paused = false
 
 const cellSize = ref(0)
 const boardX = ref(0)
@@ -14,6 +17,7 @@ const score = ref(0)
 const lines = ref(0)
 const level = ref(1)
 const gamePhase = ref('playing')
+const activePieceId = ref(null)
 
 const BOARD_WIDTH = 10
 const BOARD_HEIGHT = 20
@@ -66,6 +70,13 @@ function readWorldState() {
   if (gs) {
     gamePhase.value = gs.phase
   }
+  const apIds = world.query('ActivePiece')
+  if (apIds.length > 0) {
+    const ap = world.getComponent(apIds[0], 'ActivePiece')
+    activePieceId.value = ap ? ap.pieceId : null
+  } else {
+    activePieceId.value = null
+  }
 }
 
 function startGame(seed) {
@@ -77,8 +88,10 @@ function startGame(seed) {
     function loop(time) {
       const dt = Math.min(time - lastTime, 100)
       lastTime = time
-      world.update(dt)
-      readWorldState()
+      if (!paused) {
+        world.update(dt)
+        readWorldState()
+      }
       requestAnimationFrame(loop)
     }
     requestAnimationFrame(loop)
@@ -103,6 +116,24 @@ function onSeedSubmit() {
 
 function onSeedCancel() {
   showSeedDialog.value = false
+}
+
+function copyState() {
+  if (!world) return
+  const json = JSON.stringify(world.exportState(), null, 2)
+  navigator.clipboard.writeText(json)
+}
+
+function showState() {
+  if (!world) return
+  paused = true
+  stateJson.value = JSON.stringify(world.exportState(), null, 2)
+  showStateDialog.value = true
+}
+
+function closeState() {
+  showStateDialog.value = false
+  paused = false
 }
 
 onMounted(() => {
@@ -149,7 +180,27 @@ onMounted(() => {
     <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">Press R to restart</div>
   </div>
 
-  <button class="new-game-btn" @click="onNewGame">New Game</button>
+  <!-- Debug panel -->
+  <div class="debug-panel">
+    <span class="debug-label">piece</span> {{ activePieceId ?? '—' }}
+  </div>
+
+  <div class="btn-row">
+    <button class="new-game-btn" @click="onNewGame">New Game</button>
+    <button class="new-game-btn" @click="copyState">Copy State</button>
+    <button class="new-game-btn" @click="showState">Show State</button>
+  </div>
+
+  <dialog :open="showStateDialog" class="seed-dialog" v-if="showStateDialog">
+    <div class="seed-dialog-backdrop" @click="closeState"></div>
+    <div class="seed-dialog-content state-dialog-content">
+      <h3>Game State</h3>
+      <pre class="state-pre">{{ stateJson }}</pre>
+      <div class="seed-dialog-actions">
+        <button type="button" @click="closeState">Close</button>
+      </div>
+    </div>
+  </dialog>
 
   <dialog :open="showSeedDialog" class="seed-dialog" v-if="showSeedDialog">
     <div class="seed-dialog-backdrop" @click="onSeedCancel"></div>

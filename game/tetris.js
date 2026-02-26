@@ -5,7 +5,7 @@ import { InputSystem, SpawnSystem, MovementSystem, GravitySystem, LockSystem, Li
 import { RenderSystem } from './renderer.js';
 
 export function createGame(canvas, { boardWidth = 10, boardHeight = 20, seed } = {}) {
-  const rng = seedrandom(seed);
+  const rng = seedrandom(seed, { state: true });
   const world = new World();
   world.seed = seed;
 
@@ -15,6 +15,7 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 20, seed } =
   world.addComponent(boardId, 'GameState', Components.GameState());
   world.addComponent(boardId, 'NextQueue', Components.NextQueue(rng));
   world.addComponent(boardId, 'HoldPiece', Components.HoldPiece());
+  world.addComponent(boardId, 'PieceTable', Components.PieceTable());
   world.addComponent(boardId, 'Input', Components.Input());
 
   world.addSystem(new InputSystem());
@@ -23,7 +24,9 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 20, seed } =
   world.addSystem(new GravitySystem());
   world.addSystem(new LockSystem());
   world.addSystem(new LineClearSystem());
-  world.addSystem(new RenderSystem(canvas));
+  if (canvas) {
+    world.addSystem(new RenderSystem(canvas));
+  }
 
   function restart(newSeed) {
     for (const id of world.query('ActivePiece')) world.destroyEntity(id);
@@ -35,22 +38,92 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 20, seed } =
     Object.assign(state, { phase: 'playing', lockTimer: 0, lockResets: 0, hardDropping: false });
     const nq = world.getComponent(boardId, 'NextQueue');
     nq.queue = [];
-    nq.rng = seedrandom(newSeed);
+    nq.rng = seedrandom(newSeed, { state: true });
     world.seed = newSeed;
     const hold = world.getComponent(boardId, 'HoldPiece');
-    Object.assign(hold, { type: null, used: false });
+    Object.assign(hold, { type: null, pieceId: null, used: false });
+    const table = world.getComponent(boardId, 'PieceTable');
+    Object.assign(table, { pieces: {}, nextId: 1, freeIds: [] });
   }
 
   world.restart = restart;
+  world.boardId = boardId;
 
-  document.addEventListener('keydown', e => {
-    if (e.key.toLowerCase() === 'r') {
-      const state = world.getComponent(boardId, 'GameState');
-      if (state.phase === 'gameover') {
-        restart(seed);
+  world.exportState = function () {
+    const snapshot = {
+      seed: world.seed,
+      nextId: world.nextId,
+      entities: {},
+    };
+    for (const [id, components] of world.entities) {
+      const entity = {};
+      for (const [name, data] of Object.entries(components)) {
+        if (name === 'NextQueue') {
+          entity[name] = {
+            queue: [...data.queue],
+            rngState: data.rng.state(),
+          };
+        } else if (name === 'Board') {
+          const grid = {};
+          data.grid.forEach((row, y) => {
+            if (row.some(cell => cell !== null)) grid[y] = [...row];
+          });
+          entity[name] = {
+            width: data.width,
+            height: data.height,
+            bufferHeight: data.bufferHeight,
+            grid,
+          };
+        } else {
+          entity[name] = structuredClone(data);
+        }
       }
+      snapshot.entities[id] = entity;
     }
-  });
+    return snapshot;
+  };
+
+  world.loadState = function (snapshot) {
+    world.seed = snapshot.seed;
+    world.nextId = snapshot.nextId;
+    world.entities.clear();
+    for (const [id, entity] of Object.entries(snapshot.entities)) {
+      const components = {};
+      for (const [name, data] of Object.entries(entity)) {
+        if (name === 'NextQueue') {
+          components[name] = {
+            queue: [...data.queue],
+            rng: seedrandom(null, { state: data.rngState }),
+          };
+        } else if (name === 'Board') {
+          const totalRows = data.height + data.bufferHeight;
+          const grid = Array.from({ length: totalRows }, (_, y) =>
+            data.grid[y] ? [...data.grid[y]] : Array(data.width).fill(null)
+          );
+          components[name] = {
+            width: data.width,
+            height: data.height,
+            bufferHeight: data.bufferHeight,
+            grid,
+          };
+        } else {
+          components[name] = structuredClone(data);
+        }
+      }
+      world.entities.set(Number(id), components);
+    }
+  };
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('keydown', e => {
+      if (e.key.toLowerCase() === 'r') {
+        const state = world.getComponent(boardId, 'GameState');
+        if (state.phase === 'gameover') {
+          restart(seed);
+        }
+      }
+    });
+  }
 
   return world;
 }

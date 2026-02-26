@@ -1,3 +1,5 @@
+import seedrandom from 'seedrandom';
+
 // ============================================================
 // ECS Core
 // ============================================================
@@ -130,8 +132,8 @@ const Components = {
   Score() {
     return { score: 0, lines: 0, level: 1 };
   },
-  NextQueue() {
-    return { queue: [] };
+  NextQueue(rng) {
+    return { queue: [], rng };
   },
   HoldPiece() {
     return { type: null, used: false };
@@ -171,10 +173,10 @@ function canMove(board, type, rotation, px, py) {
   return !collides(board, type, rotation, px, py);
 }
 
-function shuffledBag() {
+function shuffledBag(rng) {
   const bag = [...PIECE_TYPES];
   for (let i = bag.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [bag[i], bag[j]] = [bag[j], bag[i]];
   }
   return bag;
@@ -201,7 +203,7 @@ class SpawnSystem {
     if (world.query('ActivePiece').length > 0) return;
 
     const nextQueue = world.getComponent(boardId, 'NextQueue');
-    while (nextQueue.queue.length < 14) nextQueue.queue.push(...shuffledBag());
+    while (nextQueue.queue.length < 14) nextQueue.queue.push(...shuffledBag(nextQueue.rng));
     const type = nextQueue.queue.shift();
 
     const board = world.getComponent(boardId, 'Board');
@@ -758,14 +760,16 @@ class RenderSystem {
 // Game Setup & Main Loop
 // ============================================================
 
-export function createGame(canvas, boardWidth = 10, boardHeight = 20) {
+export function createGame(canvas, { boardWidth = 10, boardHeight = 20, seed } = {}) {
+  const rng = seedrandom(seed);
   const world = new World();
+  world.seed = seed;
 
   const boardId = world.createEntity();
   world.addComponent(boardId, 'Board', Components.Board(boardWidth, boardHeight));
   world.addComponent(boardId, 'Score', Components.Score());
   world.addComponent(boardId, 'GameState', Components.GameState());
-  world.addComponent(boardId, 'NextQueue', Components.NextQueue());
+  world.addComponent(boardId, 'NextQueue', Components.NextQueue(rng));
   world.addComponent(boardId, 'HoldPiece', Components.HoldPiece());
   world.addComponent(boardId, 'Input', Components.Input());
 
@@ -789,6 +793,7 @@ export function createGame(canvas, boardWidth = 10, boardHeight = 20) {
         Object.assign(state, { phase: 'playing', lockTimer: 0, lockResets: 0, hardDropping: false });
         const nq = world.getComponent(boardId, 'NextQueue');
         nq.queue = [];
+        nq.rng = seedrandom(seed);
         const hold = world.getComponent(boardId, 'HoldPiece');
         Object.assign(hold, { type: null, used: false });
       }

@@ -8,6 +8,7 @@ export class RenderSystem {
     this.cellSize = 0;
     this.boardOffsetX = 0;
     this.boardOffsetY = 0;
+    this.scrollTarget = 0;
   }
 
   update(world) {
@@ -32,7 +33,14 @@ export class RenderSystem {
       const linesFromBottom = board.height - highestRow;
       const scrollRows = Math.max(0, linesFromBottom - 12);
       const baseY = this.visualTop + (VISUAL_HEIGHT - board.height) * this.cellSize;
-      this.boardOffsetY = Math.min(baseY + scrollRows * this.cellSize, 0);
+      this.scrollTarget = Math.min(baseY + scrollRows * this.cellSize, 0);
+      // Lerp toward target
+      const diff = this.scrollTarget - this.boardOffsetY;
+      if (Math.abs(diff) < 0.5) {
+        this.boardOffsetY = this.scrollTarget;
+      } else {
+        this.boardOffsetY += diff * 0.08;
+      }
     }
 
     world.ui = {
@@ -160,7 +168,11 @@ export class RenderSystem {
     const visualTop = Math.floor((h - VISUAL_HEIGHT * this.cellSize) / 2);
     this.visualTop = visualTop;
     // Base position: board bottom-aligned to the bottom of the visual area
-    this.boardOffsetY = visualTop + (VISUAL_HEIGHT - board.height) * this.cellSize;
+    this.baseBoardOffsetY = visualTop + (VISUAL_HEIGHT - board.height) * this.cellSize;
+    // For short boards, set directly (no scroll logic applies)
+    if (board.height <= VISUAL_HEIGHT) {
+      this.boardOffsetY = this.baseBoardOffsetY;
+    }
   }
 
   getHighestRow(board) {

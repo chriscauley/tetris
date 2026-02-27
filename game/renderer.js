@@ -69,18 +69,16 @@ export class RenderSystem {
     // Grid lines
     ctx.strokeStyle = '#1a1a1a';
     ctx.lineWidth = 0.5;
+    ctx.beginPath();
     for (let x = 0; x <= board.width; x++) {
-      ctx.beginPath();
       ctx.moveTo(ox + x * cs, oy);
       ctx.lineTo(ox + x * cs, oy + board.height * cs);
-      ctx.stroke();
     }
     for (let y = 0; y <= board.height; y++) {
-      ctx.beginPath();
       ctx.moveTo(ox, oy + y * cs);
       ctx.lineTo(ox + board.width * cs, oy + y * cs);
-      ctx.stroke();
     }
+    ctx.stroke();
 
     // Advance cascade animation state machine
     const slowdown = world.debug?.animSlowdown ?? 1;

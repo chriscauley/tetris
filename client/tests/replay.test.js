@@ -14,7 +14,7 @@ function runReplay(recording) {
   const world = createGame(null, {
     seed: recording.seed,
     boardHeight: recording.boardHeight,
-    cascadeGravity: recording.cascadeGravity,
+    gravityMode: recording.gravityMode || (recording.cascadeGravity ? 'cascade' : 'normal'),
     mode: 'replay',
     recording,
   })

@@ -427,6 +427,44 @@ export class LineClearSystem {
     return cellDrops;
   }
 
+  mergeByType(board, table) {
+    const visited = Array.from({ length: board.grid.length }, () =>
+      Array(board.width).fill(false)
+    );
+    for (let y = 0; y < board.grid.length; y++) {
+      for (let x = 0; x < board.width; x++) {
+        if (board.grid[y][x] !== null && !visited[y][x]) {
+          const pieceId = board.grid[y][x];
+          const type = table.pieces[pieceId].type;
+          const cells = [];
+          const ids = new Set();
+          const stack = [{ x, y }];
+          visited[y][x] = true;
+          while (stack.length > 0) {
+            const cell = stack.pop();
+            cells.push(cell);
+            ids.add(board.grid[cell.y][cell.x]);
+            for (const [dx, dy] of [[0,1],[0,-1],[1,0],[-1,0]]) {
+              const nx = cell.x + dx;
+              const ny = cell.y + dy;
+              if (ny >= 0 && ny < board.grid.length && nx >= 0 && nx < board.width &&
+                  !visited[ny][nx] && board.grid[ny][nx] !== null &&
+                  table.pieces[board.grid[ny][nx]].type === type) {
+                visited[ny][nx] = true;
+                stack.push({ x: nx, y: ny });
+              }
+            }
+          }
+          if (ids.size > 1) {
+            for (const cell of cells) {
+              board.grid[cell.y][cell.x] = pieceId;
+            }
+          }
+        }
+      }
+    }
+  }
+
   recyclePieceIds(world, boardId, board, table) {
     const alive = new Set();
     for (const row of board.grid) {
@@ -459,13 +497,14 @@ export class LineClearSystem {
     const table = world.getComponent(boardId, 'PieceTable');
     const points = [0, 100, 300, 500, 800];
 
-    if (board.cascadeGravity) {
+    if (board.gravityMode !== 'normal') {
       let totalLines = 0;
       board.cascadeAnimQueue = [];
       let linesCleared = this.clearFullRows(board);
       while (linesCleared > 0) {
         score.score += (points[linesCleared] || 800) * score.level;
         totalLines += linesCleared;
+        if (board.gravityMode === 'sticky') this.mergeByType(board, table);
         const falls = this.compactColumns(board);
         if (Object.keys(falls).length > 0) {
           const snapshot = board.grid.map(row =>

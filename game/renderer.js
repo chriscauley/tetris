@@ -50,7 +50,7 @@ export class RenderSystem {
       highestRow: highestRow < board.height ? board.height - highestRow : 0,
       seed: world.seed,
       boardHeight: board.height,
-      cascadeGravity: board.cascadeGravity,
+      gravityMode: board.gravityMode,
     };
 
     const ctx = this.ctx;
@@ -106,7 +106,9 @@ export class RenderSystem {
                 drawY -= dist * (1 - eased);
               }
             }
-            const nb = this.gridNeighbors(snapIds, x, y);
+            const nb = board.gravityMode === 'sticky'
+              ? this.gridNeighbors(snapGrid, x, y)
+              : this.gridNeighbors(snapIds, x, y);
             this.drawBlock(
               ox + x * cs,
               oy + drawY * cs,
@@ -121,7 +123,9 @@ export class RenderSystem {
           const cell = board.grid[y][x];
           if (cell !== null) {
             const entry = pieceTable.pieces[cell];
-            const nb = this.gridNeighbors(board.grid, x, y);
+            const nb = board.gravityMode === 'sticky'
+              ? this.gridNeighborsByType(board.grid, pieceTable, x, y)
+              : this.gridNeighbors(board.grid, x, y);
             this.drawBlock(
               ox + x * cs,
               oy + (y - board.bufferHeight) * cs,
@@ -266,6 +270,22 @@ export class RenderSystem {
       const step = board.cascadeAnimQueue.shift();
       board.cascadeAnim = { ...step, phase: 'fall', timer: 0, fallDuration: fallDur };
     }
+  }
+
+  gridNeighborsByType(grid, pieceTable, x, y) {
+    const id = grid[y][x];
+    if (id === null) return { top: false, bottom: false, left: false, right: false };
+    const type = pieceTable.pieces[id].type;
+    const typeAt = (gy, gx) => {
+      const cid = grid[gy][gx];
+      return cid !== null ? pieceTable.pieces[cid].type : null;
+    };
+    return {
+      top:    y > 0                    && typeAt(y - 1, x) === type,
+      bottom: y < grid.length - 1      && typeAt(y + 1, x) === type,
+      left:   x > 0                    && typeAt(y, x - 1) === type,
+      right:  x < grid[0].length - 1   && typeAt(y, x + 1) === type,
+    };
   }
 
   gridNeighbors(grid, x, y) {

@@ -18,13 +18,14 @@ function decodeCell(ch) {
   return i >= 0 ? i : null;
 }
 
-export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mode = 'play', recording, cascadeGravity = false, visualHeight = 20 } = {}) {
+export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mode = 'play', recording, gravityMode = 'normal', cascadeGravity, visualHeight = 20 } = {}) {
+  const resolvedGravityMode = gravityMode !== 'normal' ? gravityMode : (cascadeGravity ? 'cascade' : 'normal');
   const rng = seedrandom(seed, { state: true });
   const world = new World();
   world.seed = seed;
 
   const boardId = world.createEntity();
-  world.addComponent(boardId, 'Board', Components.Board(boardWidth, boardHeight, cascadeGravity, visualHeight));
+  world.addComponent(boardId, 'Board', Components.Board(boardWidth, boardHeight, resolvedGravityMode, visualHeight));
   world.addComponent(boardId, 'Score', Components.Score());
   world.addComponent(boardId, 'GameState', Components.GameState());
   world.addComponent(boardId, 'NextQueue', Components.NextQueue(rng));
@@ -82,7 +83,7 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mo
     const rec = recorderSystem.getRecording(world.seed);
     const board = world.getComponent(boardId, 'Board');
     rec.boardHeight = board.height;
-    rec.cascadeGravity = board.cascadeGravity;
+    rec.gravityMode = board.gravityMode;
     return rec;
   };
 
@@ -117,7 +118,7 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mo
             bufferHeight: data.bufferHeight,
             visualHeight: data.visualHeight,
             grid,
-            cascadeGravity: data.cascadeGravity,
+            gravityMode: data.gravityMode,
           };
         } else {
           entity[name] = structuredClone(data);
@@ -151,7 +152,7 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mo
             bufferHeight: data.bufferHeight,
             visualHeight: data.visualHeight || 20,
             grid,
-            cascadeGravity: data.cascadeGravity || false,
+            gravityMode: data.gravityMode || (data.cascadeGravity ? 'cascade' : 'normal'),
           };
         } else {
           components[name] = structuredClone(data);

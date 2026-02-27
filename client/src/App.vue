@@ -13,13 +13,13 @@ const stateJson = ref('')
 const replayJson = ref('')
 const seedInput = ref('')
 const linesInput = ref(20)
-const cascadeGravityInput = ref(false)
+const gravityModeInput = ref('normal')
 let world = null
-let paused = false
+const paused = ref(false)
 let gameAnimId = null
 let replayAnimId = null
 let currentBoardHeight = 20
-let currentCascadeGravity = false
+let currentGravityMode = 'normal'
 const replaying = ref(false)
 
 const cellSize = ref(0)
@@ -33,7 +33,7 @@ const activePieceId = ref(null)
 const highestBlock = ref(0)
 const gameSeed = ref('')
 const gameBoardHeight = ref(20)
-const gameCascade = ref(false)
+const gameGravityMode = ref('normal')
 const animSlowdown = ref(1)
 
 const BOARD_WIDTH = 10
@@ -77,7 +77,7 @@ function readWorldState() {
     highestBlock.value = ui.highestRow ?? 0
     gameSeed.value = ui.seed ?? ''
     gameBoardHeight.value = ui.boardHeight ?? 24
-    gameCascade.value = ui.cascadeGravity ?? false
+    gameGravityMode.value = ui.gravityMode ?? 'normal'
   }
   const boardId = world.query('Board', 'Score', 'GameState')[0]
   if (boardId === undefined) return
@@ -114,7 +114,7 @@ function startGameLoop() {
   function loop(time) {
     const delta = Math.min(time - lastTime, 100)
     lastTime = time
-    if (!paused) {
+    if (!paused.value) {
       accumulator += delta
       while (accumulator >= TICK_MS) {
         accumulator -= TICK_MS
@@ -129,14 +129,14 @@ function startGameLoop() {
 
 let isPlayWorld = false
 
-function startGame(seed, boardHeight = 24, cascadeGravity = false) {
+function startGame(seed, boardHeight = 24, gravityMode = 'normal') {
   stopReplay()
-  if (world && isPlayWorld && boardHeight === currentBoardHeight && cascadeGravity === currentCascadeGravity) {
+  if (world && isPlayWorld && boardHeight === currentBoardHeight && gravityMode === currentGravityMode) {
     world.restart(seed)
   } else {
-    world = createGame(canvas.value, { seed, boardHeight, cascadeGravity, visualHeight: VISUAL_HEIGHT })
+    world = createGame(canvas.value, { seed, boardHeight, gravityMode, visualHeight: VISUAL_HEIGHT })
     currentBoardHeight = boardHeight
-    currentCascadeGravity = cascadeGravity
+    currentGravityMode = gravityMode
     isPlayWorld = true
     startGameLoop()
   }
@@ -145,17 +145,17 @@ function startGame(seed, boardHeight = 24, cascadeGravity = false) {
 function onNewGame() {
   seedInput.value = ''
   linesInput.value = currentBoardHeight
-  cascadeGravityInput.value = currentCascadeGravity
+  gravityModeInput.value = currentGravityMode
   showNewGameDialog.value = true
 }
 
 function onNewGameSubmit() {
   const seed = seedInput.value.trim() || undefined
   const boardHeight = Math.max(15, Math.min(50, Math.floor(Number(linesInput.value) || 24)))
-  const cascadeGravity = cascadeGravityInput.value
+  const gravityMode = gravityModeInput.value
   showNewGameDialog.value = false
-  localStorage.setItem('tetris-settings', JSON.stringify({ seed, boardHeight, cascadeGravity }))
-  startGame(seed, boardHeight, cascadeGravity)
+  localStorage.setItem('tetris-settings', JSON.stringify({ seed, boardHeight, gravityMode }))
+  startGame(seed, boardHeight, gravityMode)
 }
 
 function onNewGameCancel() {
@@ -170,14 +170,14 @@ function copyState() {
 
 function showState() {
   if (!world) return
-  paused = true
+  paused.value = true
   stateJson.value = JSON.stringify(world.exportState(), null, 2)
   showStateDialog.value = true
 }
 
 function closeState() {
   showStateDialog.value = false
-  paused = false
+  paused.value = false
 }
 
 function getFullRecording() {
@@ -196,14 +196,14 @@ function getFullRecording() {
 function showReplay() {
   const rec = getFullRecording()
   if (!rec) return
-  paused = true
+  paused.value = true
   replayJson.value = JSON.stringify(rec, null, 2)
   showReplayDialog.value = true
 }
 
 function closeReplay() {
   showReplayDialog.value = false
-  paused = false
+  paused.value = false
 }
 
 function copyReplay() {
@@ -227,7 +227,7 @@ function startReplay(recording) {
   world = createGame(canvas.value, {
     seed: recording.seed,
     boardHeight: recording.boardHeight,
-    cascadeGravity: recording.cascadeGravity,
+    gravityMode: recording.gravityMode || (recording.cascadeGravity ? 'cascade' : 'normal'),
     visualHeight: VISUAL_HEIGHT,
     mode: 'replay',
     recording,
@@ -288,16 +288,26 @@ function closeDebugSettings() {
 }
 
 onMounted(() => {
-  let seed, boardHeight, cascadeGravity
+  document.addEventListener('keydown', e => {
+    if (e.key.toLowerCase() === 'p') {
+      if (replaying.value) return
+      if (!world) return
+      const state = world.getComponent(world.boardId, 'GameState')
+      if (state.phase === 'gameover') return
+      paused.value = !paused.value
+    }
+  })
+
+  let seed, boardHeight, gravityMode
   try {
     const saved = JSON.parse(localStorage.getItem('tetris-settings'))
     if (saved) {
       seed = saved.seed
       boardHeight = saved.boardHeight
-      cascadeGravity = saved.cascadeGravity
+      gravityMode = saved.gravityMode || (saved.cascadeGravity ? 'cascade' : 'normal')
     }
   } catch {}
-  startGame(seed, boardHeight, cascadeGravity)
+  startGame(seed, boardHeight, gravityMode)
 })
 </script>
 
@@ -326,6 +336,7 @@ onMounted(() => {
       <tr><td>&#x2193;</td><td>Soft Drop</td></tr>
       <tr><td>Space</td><td>Hard Drop</td></tr>
       <tr><td>C</td><td>Hold</td></tr>
+      <tr><td>P</td><td>Pause</td></tr>
     </table>
   </div>
 
@@ -340,6 +351,12 @@ onMounted(() => {
     <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">Press R to restart</div>
   </div>
 
+  <!-- Pause overlay -->
+  <div class="game-over-overlay" :style="gameOverStyle" v-if="paused && gamePhase !== 'gameover' && cellSize > 0">
+    <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">PAUSED</div>
+    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">Press P to resume</div>
+  </div>
+
   <!-- Debug panel -->
   <div class="debug-panel">
     <table>
@@ -347,7 +364,7 @@ onMounted(() => {
       <tr><td class="debug-label">highest</td><td>{{ highestBlock }}</td></tr>
       <tr><td class="debug-label">seed</td><td>{{ gameSeed ?? '—' }}</td></tr>
       <tr><td class="debug-label">height</td><td>{{ gameBoardHeight }}</td></tr>
-      <tr><td class="debug-label">cascade</td><td>{{ gameCascade ? 'on' : 'off' }}</td></tr>
+      <tr><td class="debug-label">gravity</td><td>{{ gameGravityMode }}</td></tr>
     </table>
   </div>
 
@@ -426,12 +443,13 @@ onMounted(() => {
           placeholder="Leave blank for random"
         />
       </label>
-      <label class="checkbox-label">
-        <input
-          v-model="cascadeGravityInput"
-          type="checkbox"
-        />
-        Cascade Gravity
+      <label>
+        Gravity
+        <select v-model="gravityModeInput">
+          <option value="normal">Normal</option>
+          <option value="cascade">Cascade</option>
+          <option value="sticky">Sticky</option>
+        </select>
       </label>
       <div class="seed-dialog-actions">
         <button type="button" @click="onNewGameCancel">Cancel</button>

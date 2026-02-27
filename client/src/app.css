@@ -151,3 +151,7 @@ canvas {
 .debug-label {
   @apply text-neutral-500 pr-2 text-right;
 }
+
+.seed-dialog-content input[type="range"] {
+  @apply block w-full mt-1.5 cursor-pointer accent-indigo-500;
+}

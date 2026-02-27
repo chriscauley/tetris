@@ -347,20 +347,84 @@ export class LineClearSystem {
     return linesCleared;
   }
 
-  compactColumns(board) {
-    for (let x = 0; x < board.width; x++) {
-      let writeY = board.grid.length - 1;
-      for (let readY = board.grid.length - 1; readY >= 0; readY--) {
-        if (board.grid[readY][x] !== null) {
-          board.grid[writeY][x] = board.grid[readY][x];
-          if (writeY !== readY) board.grid[readY][x] = null;
-          writeY--;
+  findConnectedGroups(board) {
+    const visited = Array.from({ length: board.grid.length }, () =>
+      Array(board.width).fill(false)
+    );
+    const groups = [];
+    for (let y = 0; y < board.grid.length; y++) {
+      for (let x = 0; x < board.width; x++) {
+        if (board.grid[y][x] !== null && !visited[y][x]) {
+          const pieceId = board.grid[y][x];
+          const cells = [];
+          const stack = [{ x, y }];
+          visited[y][x] = true;
+          while (stack.length > 0) {
+            const cell = stack.pop();
+            cells.push(cell);
+            for (const [dx, dy] of [[0,1],[0,-1],[1,0],[-1,0]]) {
+              const nx = cell.x + dx;
+              const ny = cell.y + dy;
+              if (ny >= 0 && ny < board.grid.length && nx >= 0 && nx < board.width &&
+                  !visited[ny][nx] && board.grid[ny][nx] === pieceId) {
+                visited[ny][nx] = true;
+                stack.push({ x: nx, y: ny });
+              }
+            }
+          }
+          groups.push(cells);
         }
       }
-      for (; writeY >= 0; writeY--) {
-        board.grid[writeY][x] = null;
+    }
+    return groups;
+  }
+
+  compactColumns(board) {
+    const cellDrops = {};
+    let anyMoved = true;
+    while (anyMoved) {
+      anyMoved = false;
+      const groups = this.findConnectedGroups(board);
+      // Sort bottom-first (highest maxY first) for faster convergence
+      groups.sort((a, b) => {
+        let maxA = 0, maxB = 0;
+        for (const c of a) if (c.y > maxA) maxA = c.y;
+        for (const c of b) if (c.y > maxB) maxB = c.y;
+        return maxB - maxA;
+      });
+      for (const group of groups) {
+        const groupCellSet = new Set(group.map(c => c.x + ',' + c.y));
+        let minDrop = board.grid.length;
+        for (const cell of group) {
+          let drop = 0;
+          for (let y = cell.y + 1; y < board.grid.length; y++) {
+            if (board.grid[y][cell.x] !== null && !groupCellSet.has(cell.x + ',' + y)) {
+              break;
+            }
+            drop++;
+          }
+          minDrop = Math.min(minDrop, drop);
+        }
+        if (minDrop > 0) {
+          anyMoved = true;
+          const cellData = group.map(c => ({
+            x: c.x, y: c.y,
+            id: board.grid[c.y][c.x],
+            prevDrop: cellDrops[c.x + ',' + c.y] || 0,
+          }));
+          for (const cell of cellData) {
+            delete cellDrops[cell.x + ',' + cell.y];
+            board.grid[cell.y][cell.x] = null;
+          }
+          for (const cell of cellData) {
+            const newY = cell.y + minDrop;
+            board.grid[newY][cell.x] = cell.id;
+            cellDrops[cell.x + ',' + newY] = cell.prevDrop + minDrop;
+          }
+        }
       }
     }
+    return cellDrops;
   }
 
   recyclePieceIds(world, boardId, board, table) {
@@ -397,11 +461,19 @@ export class LineClearSystem {
 
     if (board.cascadeGravity) {
       let totalLines = 0;
+      board.cascadeAnimQueue = [];
       let linesCleared = this.clearFullRows(board);
       while (linesCleared > 0) {
         score.score += (points[linesCleared] || 800) * score.level;
         totalLines += linesCleared;
-        this.compactColumns(board);
+        const falls = this.compactColumns(board);
+        if (Object.keys(falls).length > 0) {
+          const snapshot = board.grid.map(row =>
+            row.map(cell => cell !== null ? table.pieces[cell].type : null)
+          );
+          const ids = board.grid.map(row => [...row]);
+          board.cascadeAnimQueue.push({ grid: snapshot, ids, falls });
+        }
         linesCleared = this.clearFullRows(board);
       }
       if (totalLines > 0) {

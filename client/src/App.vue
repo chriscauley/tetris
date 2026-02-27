@@ -8,6 +8,7 @@ const canvas = ref(null)
 const showNewGameDialog = ref(false)
 const showStateDialog = ref(false)
 const showReplayDialog = ref(false)
+const showDebugDialog = ref(false)
 const stateJson = ref('')
 const replayJson = ref('')
 const seedInput = ref('')
@@ -32,6 +33,8 @@ const activePieceId = ref(null)
 const highestBlock = ref(0)
 const gameSeed = ref('')
 const gameBoardHeight = ref(20)
+const gameCascade = ref(false)
+const animSlowdown = ref(1)
 
 const BOARD_WIDTH = 10
 const VISUAL_HEIGHT = 20
@@ -74,6 +77,7 @@ function readWorldState() {
     highestBlock.value = ui.highestRow ?? 0
     gameSeed.value = ui.seed ?? ''
     gameBoardHeight.value = ui.boardHeight ?? 24
+    gameCascade.value = ui.cascadeGravity ?? false
   }
   const boardId = world.query('Board', 'Score', 'GameState')[0]
   if (boardId === undefined) return
@@ -266,6 +270,20 @@ async function loadReplay() {
   }
 }
 
+function syncDebugSettings() {
+  if (!world) return
+  if (!world.debug) world.debug = {}
+  world.debug.animSlowdown = animSlowdown.value
+}
+
+function openDebugSettings() {
+  showDebugDialog.value = true
+}
+
+function closeDebugSettings() {
+  showDebugDialog.value = false
+}
+
 onMounted(() => {
   let seed, boardHeight, cascadeGravity
   try {
@@ -326,6 +344,7 @@ onMounted(() => {
       <tr><td class="debug-label">highest</td><td>{{ highestBlock }}</td></tr>
       <tr><td class="debug-label">seed</td><td>{{ gameSeed ?? '—' }}</td></tr>
       <tr><td class="debug-label">height</td><td>{{ gameBoardHeight }}</td></tr>
+      <tr><td class="debug-label">cascade</td><td>{{ gameCascade ? 'on' : 'off' }}</td></tr>
     </table>
   </div>
 
@@ -336,6 +355,7 @@ onMounted(() => {
     <button class="new-game-btn" @click="copyReplay">Copy Replay</button>
     <button class="new-game-btn" @click="showReplay">Show Replay</button>
     <button class="new-game-btn" @click="loadReplay">Load Replay</button>
+    <button class="new-game-btn" @click="openDebugSettings">Debug</button>
   </div>
 
   <dialog :open="showStateDialog" class="seed-dialog" v-if="showStateDialog">
@@ -356,6 +376,27 @@ onMounted(() => {
       <pre class="state-pre">{{ replayJson }}</pre>
       <div class="seed-dialog-actions">
         <button type="button" @click="closeReplay">Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog :open="showDebugDialog" class="seed-dialog" v-if="showDebugDialog">
+    <div class="seed-dialog-backdrop" @click="closeDebugSettings"></div>
+    <div class="seed-dialog-content">
+      <h3>Debug Settings</h3>
+      <label>
+        Anim Slowdown: {{ animSlowdown }}x
+        <input
+          v-model.number="animSlowdown"
+          type="range"
+          min="1"
+          max="10"
+          step="1"
+          @input="syncDebugSettings"
+        />
+      </label>
+      <div class="seed-dialog-actions">
+        <button type="button" @click="closeDebugSettings">Close</button>
       </div>
     </div>
   </dialog>

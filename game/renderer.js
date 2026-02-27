@@ -50,6 +50,7 @@ export class RenderSystem {
       highestRow: highestRow < board.height ? board.height - highestRow : 0,
       seed: world.seed,
       boardHeight: board.height,
+      cascadeGravity: board.cascadeGravity,
     };
 
     const ctx = this.ctx;
@@ -81,17 +82,52 @@ export class RenderSystem {
       ctx.stroke();
     }
 
+    // Advance cascade animation state machine
+    const slowdown = world.debug?.animSlowdown ?? 1;
+    this.advanceCascadeAnim(board, slowdown);
+
     // Locked blocks
-    for (let y = board.bufferHeight; y < board.grid.length; y++) {
-      for (let x = 0; x < board.width; x++) {
-        const cell = board.grid[y][x];
-        if (cell !== null) {
-          const entry = pieceTable.pieces[cell];
-          this.drawBlock(
-            ox + x * cs,
-            oy + (y - board.bufferHeight) * cs,
-            cs, PIECE_COLORS[entry.type]
-          );
+    const anim = board.cascadeAnim;
+    if (anim) {
+      // Draw from animation snapshot grid
+      const snapGrid = anim.grid;
+      const snapIds = anim.ids;
+      for (let y = board.bufferHeight; y < snapGrid.length; y++) {
+        for (let x = 0; x < board.width; x++) {
+          const type = snapGrid[y][x];
+          if (type !== null) {
+            let drawY = y - board.bufferHeight;
+            if (anim.phase === 'fall') {
+              const key = x + ',' + y;
+              const dist = anim.falls[key];
+              if (dist !== undefined) {
+                const t = Math.min(anim.timer / anim.fallDuration, 1);
+                const eased = t * (2 - t);
+                drawY -= dist * (1 - eased);
+              }
+            }
+            const nb = this.gridNeighbors(snapIds, x, y);
+            this.drawBlock(
+              ox + x * cs,
+              oy + drawY * cs,
+              cs, PIECE_COLORS[type], nb
+            );
+          }
+        }
+      }
+    } else {
+      for (let y = board.bufferHeight; y < board.grid.length; y++) {
+        for (let x = 0; x < board.width; x++) {
+          const cell = board.grid[y][x];
+          if (cell !== null) {
+            const entry = pieceTable.pieces[cell];
+            const nb = this.gridNeighbors(board.grid, x, y);
+            this.drawBlock(
+              ox + x * cs,
+              oy + (y - board.bufferHeight) * cs,
+              cs, PIECE_COLORS[entry.type], nb
+            );
+          }
         }
       }
     }
@@ -100,13 +136,14 @@ export class RenderSystem {
     const pieceIds = world.query('ActivePiece');
     if (pieceIds.length > 0) {
       const piece = world.getComponent(pieceIds[0], 'ActivePiece');
+      const blocks = getBlocks(piece.type, piece.rotation);
+      const blockSet = new Set(blocks.map(b => b.x + ',' + b.y));
 
       // Ghost
       let ghostY = piece.y;
       while (canMove(board, piece.type, piece.rotation, piece.x, ghostY + 1)) ghostY++;
       if (ghostY !== piece.y) {
-        const ghostBlocks = getBlocks(piece.type, piece.rotation);
-        for (const b of ghostBlocks) {
+        for (const b of blocks) {
           const dy = ghostY + b.y - board.bufferHeight;
           if (dy >= 0) {
             this.drawGhostBlock(ox + (piece.x + b.x) * cs, oy + dy * cs, cs, PIECE_COLORS[piece.type]);
@@ -115,11 +152,11 @@ export class RenderSystem {
       }
 
       // Active piece
-      const blocks = getBlocks(piece.type, piece.rotation);
       for (const b of blocks) {
         const dy = piece.y + b.y - board.bufferHeight;
         if (dy >= 0) {
-          this.drawBlock(ox + (piece.x + b.x) * cs, oy + dy * cs, cs, PIECE_COLORS[piece.type]);
+          const nb = this.blockSetNeighbors(blockSet, b.x, b.y);
+          this.drawBlock(ox + (piece.x + b.x) * cs, oy + dy * cs, cs, PIECE_COLORS[piece.type], nb);
         }
       }
     }
@@ -206,17 +243,78 @@ export class RenderSystem {
     return board.height;
   }
 
-  drawBlock(x, y, size, color) {
+  advanceCascadeAnim(board, slowdown) {
+    const fallDur = Math.round(8 * slowdown);
+    const pauseDur = Math.round(4 * slowdown);
+    if (!board.cascadeAnim && board.cascadeAnimQueue.length > 0) {
+      const step = board.cascadeAnimQueue.shift();
+      board.cascadeAnim = { ...step, phase: 'fall', timer: 0, fallDuration: fallDur };
+      return;
+    }
+    if (!board.cascadeAnim) return;
+    const anim = board.cascadeAnim;
+    anim.timer++;
+    if (anim.phase === 'fall' && anim.timer >= anim.fallDuration) {
+      if (board.cascadeAnimQueue.length > 0) {
+        anim.phase = 'pause';
+        anim.timer = 0;
+        anim.pauseDuration = pauseDur;
+      } else {
+        board.cascadeAnim = null;
+      }
+    } else if (anim.phase === 'pause' && anim.timer >= anim.pauseDuration) {
+      const step = board.cascadeAnimQueue.shift();
+      board.cascadeAnim = { ...step, phase: 'fall', timer: 0, fallDuration: fallDur };
+    }
+  }
+
+  gridNeighbors(grid, x, y) {
+    const id = grid[y][x];
+    return {
+      top:    y > 0              && grid[y - 1][x] === id,
+      bottom: y < grid.length - 1 && grid[y + 1][x] === id,
+      left:   x > 0              && grid[y][x - 1] === id,
+      right:  x < grid[0].length - 1 && grid[y][x + 1] === id,
+    };
+  }
+
+  blockSetNeighbors(set, bx, by) {
+    return {
+      top:    set.has(bx + ',' + (by - 1)),
+      bottom: set.has(bx + ',' + (by + 1)),
+      left:   set.has((bx - 1) + ',' + by),
+      right:  set.has((bx + 1) + ',' + by),
+    };
+  }
+
+  drawBlock(x, y, size, color, nb) {
     const ctx = this.ctx;
     const s = size - 1;
+    let fx = x + 0.5, fy = y + 0.5, fw = s, fh = s;
+    if (nb) {
+      if (nb.left)   { fx = x;     fw += 0.5; }
+      if (nb.right)  { fw += 0.5; }
+      if (nb.top)    { fy = y;     fh += 0.5; }
+      if (nb.bottom) { fh += 0.5; }
+    }
     ctx.fillStyle = color;
-    ctx.fillRect(x + 0.5, y + 0.5, s, s);
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    ctx.fillRect(x + 0.5, y + 0.5, s, s * 0.12);
-    ctx.fillRect(x + 0.5, y + 0.5, s * 0.12, s);
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.fillRect(x + s * 0.88 + 0.5, y + 0.5, s * 0.12, s);
-    ctx.fillRect(x + 0.5, y + s * 0.88 + 0.5, s, s * 0.12);
+    ctx.fillRect(fx, fy, fw, fh);
+    if (!nb || !nb.top) {
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fillRect(x + 0.5, y + 0.5, s, s * 0.12);
+    }
+    if (!nb || !nb.left) {
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fillRect(x + 0.5, y + 0.5, s * 0.12, s);
+    }
+    if (!nb || !nb.right) {
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.fillRect(x + s * 0.88 + 0.5, y + 0.5, s * 0.12, s);
+    }
+    if (!nb || !nb.bottom) {
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.fillRect(x + 0.5, y + s * 0.88 + 0.5, s, s * 0.12);
+    }
   }
 
   drawGhostBlock(x, y, size, color) {
@@ -233,8 +331,10 @@ export class RenderSystem {
     const ctx = this.ctx;
     ctx.globalAlpha = alpha;
     const blocks = getBlocks(type, 0);
+    const blockSet = new Set(blocks.map(b => b.x + ',' + b.y));
     for (const b of blocks) {
-      this.drawBlock(x + b.x * cellSize, y + b.y * cellSize, cellSize, PIECE_COLORS[type]);
+      const nb = this.blockSetNeighbors(blockSet, b.x, b.y);
+      this.drawBlock(x + b.x * cellSize, y + b.y * cellSize, cellSize, PIECE_COLORS[type], nb);
     }
     ctx.globalAlpha = 1;
   }

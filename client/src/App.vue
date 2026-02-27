@@ -145,6 +145,7 @@ function onNewGameSubmit() {
   const seed = seedInput.value.trim() || undefined
   const boardHeight = Math.max(15, Math.min(50, Math.floor(Number(linesInput.value) || 20)))
   showNewGameDialog.value = false
+  localStorage.setItem('tetris-settings', JSON.stringify({ seed, boardHeight }))
   startGame(seed, boardHeight)
 }
 
@@ -261,7 +262,15 @@ async function loadReplay() {
 }
 
 onMounted(() => {
-  startGame(undefined)
+  let seed, boardHeight
+  try {
+    const saved = JSON.parse(localStorage.getItem('tetris-settings'))
+    if (saved) {
+      seed = saved.seed
+      boardHeight = saved.boardHeight
+    }
+  } catch {}
+  startGame(seed, boardHeight)
 })
 </script>
 

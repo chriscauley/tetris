@@ -30,11 +30,9 @@ export class RenderSystem {
     const VISUAL_HEIGHT = 20;
     if (board.height > VISUAL_HEIGHT) {
       const linesFromBottom = board.height - highestRow;
-      if (linesFromBottom > 12) {
-        const scrollRows = linesFromBottom - 12;
-        const baseY = this.visualTop + (VISUAL_HEIGHT - board.height) * this.cellSize;
-        this.boardOffsetY = Math.min(baseY + scrollRows * this.cellSize, 0);
-      }
+      const scrollRows = Math.max(0, linesFromBottom - 12);
+      const baseY = this.visualTop + (VISUAL_HEIGHT - board.height) * this.cellSize;
+      this.boardOffsetY = Math.min(baseY + scrollRows * this.cellSize, 0);
     }
 
     world.ui = {

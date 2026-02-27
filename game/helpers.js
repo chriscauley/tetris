@@ -26,5 +26,5 @@ export function shuffledBag(rng) {
 }
 
 export function getDropInterval(level) {
-  return Math.max(50, 1000 - (level - 1) * 80);
+  return Math.max(3, 63 - (level - 1) * 5);
 }

@@ -1,6 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { createGame, TICK_MS } from '@game/tetris.js'
+import { createGame } from '@game/tetris.js'
+
+const TICK_MS = 16
 
 const canvas = ref(null)
 const showSeedDialog = ref(false)
@@ -102,7 +104,7 @@ function startGameLoop() {
       accumulator += delta
       while (accumulator >= TICK_MS) {
         accumulator -= TICK_MS
-        world.update(TICK_MS)
+        world.update()
       }
       readWorldState()
     }

@@ -51,8 +51,8 @@ export class InputSystem {
   constructor() {
     this.keys = {};
     this.das = {};
-    this.dasDelay = 170;
-    this.dasRepeat = 50;
+    this.dasDelay = 11;
+    this.dasRepeat = 3;
     this.actionQueue = [];
 
     document.addEventListener('keydown', e => {
@@ -89,10 +89,10 @@ export class InputSystem {
     return map[code] || null;
   }
 
-  update(world, dt) {
+  update(world) {
     for (const code of ['ArrowLeft', 'ArrowRight', 'ArrowDown']) {
       if (this.keys[code] && this.das[code]) {
-        this.das[code].timer += dt;
+        this.das[code].timer++;
         if (!this.das[code].fired && this.das[code].timer >= this.dasDelay) {
           this.das[code].fired = true;
           this.das[code].timer = 0;
@@ -255,7 +255,7 @@ export class MovementSystem {
 // --- GravitySystem: auto-drops the active piece ---
 
 export class GravitySystem {
-  update(world, dt) {
+  update(world) {
     const boardId = world.query('Board', 'GameState')[0];
     if (boardId === undefined) return;
     const state = world.getComponent(boardId, 'GameState');
@@ -269,7 +269,7 @@ export class GravitySystem {
     const drop = world.getComponent(pieceId, 'Drop');
     const board = world.getComponent(boardId, 'Board');
 
-    drop.timer += dt;
+    drop.timer++;
 
     while (drop.timer >= drop.interval) {
       drop.timer -= drop.interval;
@@ -286,7 +286,7 @@ export class GravitySystem {
 // --- LockSystem: locks piece to board when grounded ---
 
 export class LockSystem {
-  update(world, dt) {
+  update(world) {
     const boardId = world.query('Board', 'GameState')[0];
     if (boardId === undefined) return;
     const state = world.getComponent(boardId, 'GameState');
@@ -320,7 +320,7 @@ export class LockSystem {
     if (state.hardDropping) return;
 
     if (grounded && state.phase === 'locking') {
-      state.lockTimer += dt;
+      state.lockTimer++;
     } else if (grounded && state.phase === 'playing') {
       state.phase = 'locking';
       state.lockTimer = 0;

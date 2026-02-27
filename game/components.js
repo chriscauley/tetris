@@ -7,7 +7,7 @@ export const Components = {
   ActivePiece(type, x, y, rotation = 0, pieceId = null) {
     return { type, x, y, rotation, pieceId };
   },
-  Drop(interval = 1000) {
+  Drop(interval = 63) {
     return { timer: 0, interval, softDrop: false };
   },
   Score() {
@@ -26,7 +26,7 @@ export const Components = {
     return {
       phase: 'playing',
       lockTimer: 0,
-      lockDelay: 500,
+      lockDelay: 31,
       lockResets: 0,
       maxLockResets: 15,
       hardDropping: false,

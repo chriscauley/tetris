@@ -50,9 +50,9 @@ export class World {
     this.systems.push(system);
   }
 
-  update(dt) {
+  update() {
     for (const system of this.systems) {
-      system.update(this, dt);
+      system.update(this);
     }
   }
 }

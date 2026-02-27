@@ -58,6 +58,7 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mo
     for (const id of world.query('ActivePiece')) world.destroyEntity(id);
     const board = world.getComponent(boardId, 'Board');
     for (let y = 0; y < board.grid.length; y++) board.grid[y].fill(null);
+    board.gridVersion++;
     const score = world.getComponent(boardId, 'Score');
     Object.assign(score, { score: 0, lines: 0, level: 1 });
     const state = world.getComponent(boardId, 'GameState');

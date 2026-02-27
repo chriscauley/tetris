@@ -31,6 +31,13 @@ export class RenderSystem {
     this._ghostCache = { ghostY: 0, pieceX: -1, pieceY: -1, pieceType: -1, pieceRotation: -1, boardVersion: -1 };
     this._neighborCache = null;
     this._neighborCacheVersion = -1;
+    this._offscreenCanvas = null;
+    this._offscreenCtx = null;
+    this._offscreenVersion = -1;
+    this._offscreenCellSize = 0;
+    this._offscreenDpr = 0;
+    this._offscreenWidth = 0;
+    this._offscreenHeight = 0;
   }
 
   update(world) {
@@ -84,31 +91,24 @@ export class RenderSystem {
     ctx.fillStyle = '#111';
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Board background
-    ctx.fillStyle = '#000';
-    ctx.fillRect(ox, oy, board.width * cs, board.height * cs);
-
-    // Grid lines
-    ctx.strokeStyle = '#1a1a1a';
-    ctx.lineWidth = 0.5;
-    ctx.beginPath();
-    for (let x = 0; x <= board.width; x++) {
-      ctx.moveTo(ox + x * cs, oy);
-      ctx.lineTo(ox + x * cs, oy + board.height * cs);
-    }
-    for (let y = 0; y <= board.height; y++) {
-      ctx.moveTo(ox, oy + y * cs);
-      ctx.lineTo(ox + board.width * cs, oy + y * cs);
-    }
-    ctx.stroke();
-
     // Advance cascade animation state machine
     const slowdown = world.debug?.animSlowdown ?? 1;
     this.advanceCascadeAnim(board, slowdown);
 
-    // Locked blocks
+    const dpr = window.devicePixelRatio || 1;
     const anim = board.cascadeAnim;
+
     if (anim) {
+      // During cascade animation: draw directly, mark offscreen stale
+      this._offscreenVersion = -1;
+
+      // Board background
+      ctx.fillStyle = '#000';
+      ctx.fillRect(ox, oy, board.width * cs, board.height * cs);
+
+      // Grid lines
+      this._drawGridLines(ctx, ox, oy, board, cs);
+
       // Draw from animation snapshot grid
       const snapGrid = anim.grid;
       const snapIds = anim.ids;
@@ -138,22 +138,16 @@ export class RenderSystem {
         }
       }
     } else {
+      // No animation: use offscreen canvas
       if (this._neighborCacheVersion !== board.gridVersion) {
         this._buildNeighborCache(board, pieceTable);
       }
-      for (let y = board.bufferHeight; y < board.grid.length; y++) {
-        for (let x = 0; x < board.width; x++) {
-          const cell = board.grid[y][x];
-          if (cell !== null) {
-            const entry = pieceTable.pieces[cell];
-            this.drawBlock(
-              ox + x * cs,
-              oy + (y - board.bufferHeight) * cs,
-              cs, PIECE_COLORS[entry.type], this._neighborCache[y][x]
-            );
-          }
-        }
+      if (this._offscreenVersion !== board.gridVersion ||
+          this._offscreenCellSize !== cs ||
+          this._offscreenDpr !== dpr) {
+        this._buildOffscreenGrid(board, pieceTable, cs, dpr);
       }
+      ctx.drawImage(this._offscreenCanvas, 0, 0, this._offscreenCanvas.width, this._offscreenCanvas.height, ox, oy, board.width * cs, board.height * cs);
     }
 
     // Ghost piece + active piece
@@ -334,6 +328,66 @@ export class RenderSystem {
       }
     }
     this._neighborCacheVersion = board.gridVersion;
+  }
+
+  _drawGridLines(ctx, ox, oy, board, cs) {
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    for (let x = 0; x <= board.width; x++) {
+      ctx.moveTo(ox + x * cs, oy);
+      ctx.lineTo(ox + x * cs, oy + board.height * cs);
+    }
+    for (let y = 0; y <= board.height; y++) {
+      ctx.moveTo(ox, oy + y * cs);
+      ctx.lineTo(ox + board.width * cs, oy + y * cs);
+    }
+    ctx.stroke();
+  }
+
+  _buildOffscreenGrid(board, pieceTable, cs, dpr) {
+    const w = board.width * cs;
+    const h = board.height * cs;
+    const pw = Math.ceil(w * dpr);
+    const ph = Math.ceil(h * dpr);
+
+    if (!this._offscreenCanvas || this._offscreenCanvas.width !== pw || this._offscreenCanvas.height !== ph) {
+      this._offscreenCanvas = document.createElement('canvas');
+      this._offscreenCanvas.width = pw;
+      this._offscreenCanvas.height = ph;
+      this._offscreenCtx = this._offscreenCanvas.getContext('2d');
+    }
+
+    const octx = this._offscreenCtx;
+    octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // Board background
+    octx.fillStyle = '#000';
+    octx.fillRect(0, 0, w, h);
+
+    // Grid lines at origin
+    this._drawGridLines(octx, 0, 0, board, cs);
+
+    // Locked blocks using cached neighbors
+    for (let y = board.bufferHeight; y < board.grid.length; y++) {
+      for (let x = 0; x < board.width; x++) {
+        const cell = board.grid[y][x];
+        if (cell !== null) {
+          const entry = pieceTable.pieces[cell];
+          this.drawBlock(
+            x * cs,
+            (y - board.bufferHeight) * cs,
+            cs, PIECE_COLORS[entry.type], this._neighborCache[y][x], octx
+          );
+        }
+      }
+    }
+
+    this._offscreenVersion = board.gridVersion;
+    this._offscreenCellSize = cs;
+    this._offscreenDpr = dpr;
+    this._offscreenWidth = w;
+    this._offscreenHeight = h;
   }
 
   gridNeighborsByType(grid, pieceTable, x, y) {

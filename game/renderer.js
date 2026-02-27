@@ -1,5 +1,21 @@
-import { PIECE_COLORS, getBlocks } from './pieces.js';
+import { PIECE_COLORS, PIECE_TYPES, getBlocks } from './pieces.js';
 import { canMove } from './helpers.js';
+
+// Pre-compute mini piece block positions and neighbor data
+const MINI_PIECE_DATA = {};
+for (const type of PIECE_TYPES) {
+  const blocks = getBlocks(type, 0);
+  const blockSet = new Set(blocks.map(b => b.x + ',' + b.y));
+  MINI_PIECE_DATA[type] = blocks.map(b => ({
+    x: b.x, y: b.y,
+    nb: {
+      top:    blockSet.has(b.x + ',' + (b.y - 1)),
+      bottom: blockSet.has(b.x + ',' + (b.y + 1)),
+      left:   blockSet.has((b.x - 1) + ',' + b.y),
+      right:  blockSet.has((b.x + 1) + ',' + b.y),
+    },
+  }));
+}
 
 export class RenderSystem {
   constructor(canvas) {
@@ -348,11 +364,8 @@ export class RenderSystem {
   drawMiniPiece(x, y, cellSize, type, alpha = 1) {
     const ctx = this.ctx;
     ctx.globalAlpha = alpha;
-    const blocks = getBlocks(type, 0);
-    const blockSet = new Set(blocks.map(b => b.x + ',' + b.y));
-    for (const b of blocks) {
-      const nb = this.blockSetNeighbors(blockSet, b.x, b.y);
-      this.drawBlock(x + b.x * cellSize, y + b.y * cellSize, cellSize, PIECE_COLORS[type], nb);
+    for (const entry of MINI_PIECE_DATA[type]) {
+      this.drawBlock(x + entry.x * cellSize, y + entry.y * cellSize, cellSize, PIECE_COLORS[type], entry.nb);
     }
     ctx.globalAlpha = 1;
   }

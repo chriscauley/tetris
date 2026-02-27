@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <style>
+    text {
+      font-family: "Kannada Sangam MN", "Kannada MN", Arial, Helvetica, sans-serif;
+    }
+  </style>
+  <!-- White circle behind the eye -->
+  <circle cx="18.5" cy="35" r="12" fill="white"/>
+  <text x="32" y="48" text-anchor="middle" font-size="52" fill="black">ಠ_</text>
+</svg>

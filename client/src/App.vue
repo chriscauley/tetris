@@ -134,7 +134,7 @@ function startGame(seed, boardHeight = 24, cascadeGravity = false) {
   if (world && isPlayWorld && boardHeight === currentBoardHeight && cascadeGravity === currentCascadeGravity) {
     world.restart(seed)
   } else {
-    world = createGame(canvas.value, { seed, boardHeight, cascadeGravity })
+    world = createGame(canvas.value, { seed, boardHeight, cascadeGravity, visualHeight: VISUAL_HEIGHT })
     currentBoardHeight = boardHeight
     currentCascadeGravity = cascadeGravity
     isPlayWorld = true
@@ -228,6 +228,7 @@ function startReplay(recording) {
     seed: recording.seed,
     boardHeight: recording.boardHeight,
     cascadeGravity: recording.cascadeGravity,
+    visualHeight: VISUAL_HEIGHT,
     mode: 'replay',
     recording,
   })

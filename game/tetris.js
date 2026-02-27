@@ -18,13 +18,13 @@ function decodeCell(ch) {
   return i >= 0 ? i : null;
 }
 
-export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mode = 'play', recording, cascadeGravity = false } = {}) {
+export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mode = 'play', recording, cascadeGravity = false, visualHeight = 20 } = {}) {
   const rng = seedrandom(seed, { state: true });
   const world = new World();
   world.seed = seed;
 
   const boardId = world.createEntity();
-  world.addComponent(boardId, 'Board', Components.Board(boardWidth, boardHeight, cascadeGravity));
+  world.addComponent(boardId, 'Board', Components.Board(boardWidth, boardHeight, cascadeGravity, visualHeight));
   world.addComponent(boardId, 'Score', Components.Score());
   world.addComponent(boardId, 'GameState', Components.GameState());
   world.addComponent(boardId, 'NextQueue', Components.NextQueue(rng));
@@ -115,6 +115,7 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mo
             width: data.width,
             height: data.height,
             bufferHeight: data.bufferHeight,
+            visualHeight: data.visualHeight,
             grid,
             cascadeGravity: data.cascadeGravity,
           };
@@ -148,6 +149,7 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mo
             width: data.width,
             height: data.height,
             bufferHeight: data.bufferHeight,
+            visualHeight: data.visualHeight || 20,
             grid,
             cascadeGravity: data.cascadeGravity || false,
           };

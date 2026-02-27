@@ -23,7 +23,7 @@ export class SpawnSystem {
     if (hold) hold.used = false;
 
     const spawnX = Math.floor((board.width - PIECE_SHAPES[type][0].length) / 2);
-    const spawnY = board.bufferHeight - 2;
+    const spawnY = board.bufferHeight + Math.max(0, board.height - board.visualHeight) - 2;
 
     if (!canMove(board, type, 0, spawnX, spawnY)) {
       state.phase = 'gameover';
@@ -234,7 +234,7 @@ export class MovementSystem {
       hold.type = oldType;
       hold.pieceId = oldPieceId;
       const spawnX = Math.floor((board.width - PIECE_SHAPES[swapType][0].length) / 2);
-      const spawnY = board.bufferHeight - 2;
+      const spawnY = board.bufferHeight + Math.max(0, board.height - board.visualHeight) - 2;
       piece.type = swapType;
       piece.pieceId = swapPieceId;
       piece.x = spawnX;

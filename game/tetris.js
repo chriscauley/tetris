@@ -153,6 +153,9 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mo
             visualHeight: data.visualHeight || 20,
             grid,
             gravityMode: data.gravityMode || (data.cascadeGravity ? 'cascade' : 'normal'),
+            cascadeAnimQueue: [],
+            cascadeAnim: null,
+            gridVersion: 0,
           };
         } else {
           components[name] = structuredClone(data);

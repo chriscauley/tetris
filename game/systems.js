@@ -309,6 +309,7 @@ export class LockSystem {
           board.grid[gy][gx] = piece.pieceId;
         }
       }
+      board.gridVersion++;
       world.destroyEntity(pieceId);
       state.phase = 'playing';
       state.lockTimer = 0;
@@ -516,6 +517,7 @@ export class LineClearSystem {
         linesCleared = this.clearFullRows(board);
       }
       if (totalLines > 0) {
+        board.gridVersion++;
         score.lines += totalLines;
         score.level = Math.floor(score.lines / 10) + 1;
         this.recyclePieceIds(world, boardId, board, table);
@@ -523,6 +525,7 @@ export class LineClearSystem {
     } else {
       const linesCleared = this.clearFullRows(board);
       if (linesCleared > 0) {
+        board.gridVersion++;
         score.score += (points[linesCleared] || 800) * score.level;
         score.lines += linesCleared;
         score.level = Math.floor(score.lines / 10) + 1;

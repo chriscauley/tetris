@@ -334,15 +334,7 @@ export class LockSystem {
 // --- LineClearSystem: clears completed rows, updates score ---
 
 export class LineClearSystem {
-  update(world) {
-    const boardId = world.query('Board', 'Score')[0];
-    if (boardId === undefined) return;
-    if (world.query('ActivePiece').length > 0) return;
-
-    const board = world.getComponent(boardId, 'Board');
-    const score = world.getComponent(boardId, 'Score');
-    const table = world.getComponent(boardId, 'PieceTable');
-
+  clearFullRows(board) {
     let linesCleared = 0;
     for (let y = board.grid.length - 1; y >= 0; y--) {
       if (board.grid[y].every(cell => cell !== null)) {
@@ -352,36 +344,78 @@ export class LineClearSystem {
         y++;
       }
     }
+    return linesCleared;
+  }
 
-    if (linesCleared > 0) {
-      const points = [0, 100, 300, 500, 800];
-      score.score += (points[linesCleared] || 800) * score.level;
-      score.lines += linesCleared;
-      score.level = Math.floor(score.lines / 10) + 1;
-
-      // Find piece IDs still on the board
-      const alive = new Set();
-      for (const row of board.grid) {
-        for (const cell of row) {
-          if (cell !== null) alive.add(cell);
+  compactColumns(board) {
+    for (let x = 0; x < board.width; x++) {
+      let writeY = board.grid.length - 1;
+      for (let readY = board.grid.length - 1; readY >= 0; readY--) {
+        if (board.grid[readY][x] !== null) {
+          board.grid[writeY][x] = board.grid[readY][x];
+          if (writeY !== readY) board.grid[readY][x] = null;
+          writeY--;
         }
       }
-      // Also keep the held piece
-      const hold = world.getComponent(boardId, 'HoldPiece');
-      if (hold && hold.pieceId !== null) alive.add(hold.pieceId);
-      // Also keep the active piece (shouldn't exist here, but be safe)
-      const activeIds = world.query('ActivePiece');
-      for (const id of activeIds) {
-        const ap = world.getComponent(id, 'ActivePiece');
-        if (ap && ap.pieceId !== null) alive.add(ap.pieceId);
+      for (; writeY >= 0; writeY--) {
+        board.grid[writeY][x] = null;
       }
+    }
+  }
 
-      // Recycle dead IDs
-      for (const id of Object.keys(table.pieces)) {
-        if (!alive.has(Number(id))) {
-          delete table.pieces[id];
-          table.freeIds.push(Number(id));
-        }
+  recyclePieceIds(world, boardId, board, table) {
+    const alive = new Set();
+    for (const row of board.grid) {
+      for (const cell of row) {
+        if (cell !== null) alive.add(cell);
+      }
+    }
+    const hold = world.getComponent(boardId, 'HoldPiece');
+    if (hold && hold.pieceId !== null) alive.add(hold.pieceId);
+    const activeIds = world.query('ActivePiece');
+    for (const id of activeIds) {
+      const ap = world.getComponent(id, 'ActivePiece');
+      if (ap && ap.pieceId !== null) alive.add(ap.pieceId);
+    }
+    for (const id of Object.keys(table.pieces)) {
+      if (!alive.has(Number(id))) {
+        delete table.pieces[id];
+        table.freeIds.push(Number(id));
+      }
+    }
+  }
+
+  update(world) {
+    const boardId = world.query('Board', 'Score')[0];
+    if (boardId === undefined) return;
+    if (world.query('ActivePiece').length > 0) return;
+
+    const board = world.getComponent(boardId, 'Board');
+    const score = world.getComponent(boardId, 'Score');
+    const table = world.getComponent(boardId, 'PieceTable');
+    const points = [0, 100, 300, 500, 800];
+
+    if (board.cascadeGravity) {
+      let totalLines = 0;
+      let linesCleared = this.clearFullRows(board);
+      while (linesCleared > 0) {
+        score.score += (points[linesCleared] || 800) * score.level;
+        totalLines += linesCleared;
+        this.compactColumns(board);
+        linesCleared = this.clearFullRows(board);
+      }
+      if (totalLines > 0) {
+        score.lines += totalLines;
+        score.level = Math.floor(score.lines / 10) + 1;
+        this.recyclePieceIds(world, boardId, board, table);
+      }
+    } else {
+      const linesCleared = this.clearFullRows(board);
+      if (linesCleared > 0) {
+        score.score += (points[linesCleared] || 800) * score.level;
+        score.lines += linesCleared;
+        score.level = Math.floor(score.lines / 10) + 1;
+        this.recyclePieceIds(world, boardId, board, table);
       }
     }
   }

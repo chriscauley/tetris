@@ -18,13 +18,13 @@ function decodeCell(ch) {
   return i >= 0 ? i : null;
 }
 
-export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mode = 'play', recording } = {}) {
+export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mode = 'play', recording, cascadeGravity = false } = {}) {
   const rng = seedrandom(seed, { state: true });
   const world = new World();
   world.seed = seed;
 
   const boardId = world.createEntity();
-  world.addComponent(boardId, 'Board', Components.Board(boardWidth, boardHeight));
+  world.addComponent(boardId, 'Board', Components.Board(boardWidth, boardHeight, cascadeGravity));
   world.addComponent(boardId, 'Score', Components.Score());
   world.addComponent(boardId, 'GameState', Components.GameState());
   world.addComponent(boardId, 'NextQueue', Components.NextQueue(rng));
@@ -112,6 +112,7 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mo
             height: data.height,
             bufferHeight: data.bufferHeight,
             grid,
+            cascadeGravity: data.cascadeGravity,
           };
         } else {
           entity[name] = structuredClone(data);
@@ -144,6 +145,7 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mo
             height: data.height,
             bufferHeight: data.bufferHeight,
             grid,
+            cascadeGravity: data.cascadeGravity || false,
           };
         } else {
           components[name] = structuredClone(data);

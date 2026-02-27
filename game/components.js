@@ -1,8 +1,8 @@
 export const Components = {
-  Board(w = 10, h = 20) {
+  Board(w = 10, h = 20, cascadeGravity = false) {
     const bufferHeight = 4;
     const grid = Array.from({ length: h + bufferHeight }, () => Array(w).fill(null));
-    return { width: w, height: h, bufferHeight, grid };
+    return { width: w, height: h, bufferHeight, grid, cascadeGravity };
   },
   ActivePiece(type, x, y, rotation = 0, pieceId = null) {
     return { type, x, y, rotation, pieceId };

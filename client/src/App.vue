@@ -12,11 +12,13 @@ const stateJson = ref('')
 const replayJson = ref('')
 const seedInput = ref('')
 const linesInput = ref(20)
+const cascadeGravityInput = ref(false)
 let world = null
 let paused = false
 let gameAnimId = null
 let replayAnimId = null
 let currentBoardHeight = 20
+let currentCascadeGravity = false
 const replaying = ref(false)
 
 const cellSize = ref(0)
@@ -123,13 +125,14 @@ function startGameLoop() {
 
 let isPlayWorld = false
 
-function startGame(seed, boardHeight = 24) {
+function startGame(seed, boardHeight = 24, cascadeGravity = false) {
   stopReplay()
-  if (world && isPlayWorld && boardHeight === currentBoardHeight) {
+  if (world && isPlayWorld && boardHeight === currentBoardHeight && cascadeGravity === currentCascadeGravity) {
     world.restart(seed)
   } else {
-    world = createGame(canvas.value, { seed, boardHeight })
+    world = createGame(canvas.value, { seed, boardHeight, cascadeGravity })
     currentBoardHeight = boardHeight
+    currentCascadeGravity = cascadeGravity
     isPlayWorld = true
     startGameLoop()
   }
@@ -138,15 +141,17 @@ function startGame(seed, boardHeight = 24) {
 function onNewGame() {
   seedInput.value = ''
   linesInput.value = currentBoardHeight
+  cascadeGravityInput.value = currentCascadeGravity
   showNewGameDialog.value = true
 }
 
 function onNewGameSubmit() {
   const seed = seedInput.value.trim() || undefined
   const boardHeight = Math.max(15, Math.min(50, Math.floor(Number(linesInput.value) || 24)))
+  const cascadeGravity = cascadeGravityInput.value
   showNewGameDialog.value = false
-  localStorage.setItem('tetris-settings', JSON.stringify({ seed, boardHeight }))
-  startGame(seed, boardHeight)
+  localStorage.setItem('tetris-settings', JSON.stringify({ seed, boardHeight, cascadeGravity }))
+  startGame(seed, boardHeight, cascadeGravity)
 }
 
 function onNewGameCancel() {
@@ -262,15 +267,16 @@ async function loadReplay() {
 }
 
 onMounted(() => {
-  let seed, boardHeight
+  let seed, boardHeight, cascadeGravity
   try {
     const saved = JSON.parse(localStorage.getItem('tetris-settings'))
     if (saved) {
       seed = saved.seed
       boardHeight = saved.boardHeight
+      cascadeGravity = saved.cascadeGravity
     }
   } catch {}
-  startGame(seed, boardHeight)
+  startGame(seed, boardHeight, cascadeGravity)
 })
 </script>
 
@@ -375,6 +381,13 @@ onMounted(() => {
           type="text"
           placeholder="Leave blank for random"
         />
+      </label>
+      <label class="checkbox-label">
+        <input
+          v-model="cascadeGravityInput"
+          type="checkbox"
+        />
+        Cascade Gravity
       </label>
       <div class="seed-dialog-actions">
         <button type="button" @click="onNewGameCancel">Cancel</button>

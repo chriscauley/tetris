@@ -94,6 +94,11 @@ canvas {
   @apply outline-none border-neutral-400;
 }
 
+.seed-dialog-content input[type="number"] {
+  -moz-appearance: textfield;
+  width: 5em;
+}
+
 .seed-dialog-actions {
   @apply flex justify-end gap-2;
 }
@@ -127,9 +132,13 @@ canvas {
 }
 
 .debug-panel {
-  @apply fixed bottom-3 right-3 px-3 py-1.5 font-mono text-xs text-neutral-400 rounded bg-neutral-800/80 border border-neutral-700;
+  @apply fixed bottom-3 right-3 p-2 font-mono text-xs text-neutral-400 rounded bg-neutral-800/80 border border-neutral-700;
+}
+
+.debug-panel table {
+  @apply border-collapse;
 }
 
 .debug-label {
-  @apply text-neutral-500;
+  @apply text-neutral-500 pr-2 text-right;
 }

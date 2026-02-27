@@ -5,16 +5,18 @@ import { createGame } from '@game/tetris.js'
 const TICK_MS = 16
 
 const canvas = ref(null)
-const showSeedDialog = ref(false)
+const showNewGameDialog = ref(false)
 const showStateDialog = ref(false)
 const showReplayDialog = ref(false)
 const stateJson = ref('')
 const replayJson = ref('')
 const seedInput = ref('')
+const linesInput = ref(20)
 let world = null
 let paused = false
 let gameAnimId = null
 let replayAnimId = null
+let currentBoardHeight = 20
 const replaying = ref(false)
 
 const cellSize = ref(0)
@@ -25,9 +27,12 @@ const lines = ref(0)
 const level = ref(1)
 const gamePhase = ref('playing')
 const activePieceId = ref(null)
+const highestBlock = ref(0)
+const gameSeed = ref('')
+const gameBoardHeight = ref(20)
 
 const BOARD_WIDTH = 10
-const BOARD_HEIGHT = 20
+const VISUAL_HEIGHT = 20
 
 const fontSize = computed(() => Math.max(11, cellSize.value * 0.55) + 'px')
 const helpFontSize = computed(() => Math.max(9, cellSize.value * 0.35) + 'px')
@@ -38,7 +43,7 @@ const leftPanelStyle = computed(() => ({
   position: 'fixed',
   left: (boardX.value - cellSize.value * 5.5) + 'px',
   top: boardY.value + 'px',
-  height: (BOARD_HEIGHT * cellSize.value) + 'px',
+  height: (VISUAL_HEIGHT * cellSize.value) + 'px',
   fontFamily: 'monospace',
 }))
 
@@ -54,7 +59,7 @@ const gameOverStyle = computed(() => ({
   left: boardX.value + 'px',
   top: boardY.value + 'px',
   width: (BOARD_WIDTH * cellSize.value) + 'px',
-  height: (BOARD_HEIGHT * cellSize.value) + 'px',
+  height: (VISUAL_HEIGHT * cellSize.value) + 'px',
 }))
 
 function readWorldState() {
@@ -64,6 +69,9 @@ function readWorldState() {
     cellSize.value = ui.cellSize
     boardX.value = ui.boardX
     boardY.value = ui.boardY
+    highestBlock.value = ui.highestRow ?? 0
+    gameSeed.value = ui.seed ?? ''
+    gameBoardHeight.value = ui.boardHeight ?? 20
   }
   const boardId = world.query('Board', 'Score', 'GameState')[0]
   if (boardId === undefined) return
@@ -115,35 +123,33 @@ function startGameLoop() {
 
 let isPlayWorld = false
 
-function startGame(seed) {
+function startGame(seed, boardHeight = 20) {
   stopReplay()
-  if (world && isPlayWorld) {
+  if (world && isPlayWorld && boardHeight === currentBoardHeight) {
     world.restart(seed)
   } else {
-    world = createGame(canvas.value, { seed })
+    world = createGame(canvas.value, { seed, boardHeight })
+    currentBoardHeight = boardHeight
     isPlayWorld = true
     startGameLoop()
   }
 }
 
-function onNewGame(e) {
-  if (e.ctrlKey || e.metaKey) {
-    e.preventDefault()
-    seedInput.value = ''
-    showSeedDialog.value = true
-  } else {
-    startGame(undefined)
-  }
+function onNewGame() {
+  seedInput.value = ''
+  linesInput.value = currentBoardHeight
+  showNewGameDialog.value = true
 }
 
-function onSeedSubmit() {
+function onNewGameSubmit() {
   const seed = seedInput.value.trim() || undefined
-  showSeedDialog.value = false
-  startGame(seed)
+  const boardHeight = Math.max(15, Math.min(50, Math.floor(Number(linesInput.value) || 20)))
+  showNewGameDialog.value = false
+  startGame(seed, boardHeight)
 }
 
-function onSeedCancel() {
-  showSeedDialog.value = false
+function onNewGameCancel() {
+  showNewGameDialog.value = false
 }
 
 function copyState() {
@@ -300,7 +306,12 @@ onMounted(() => {
 
   <!-- Debug panel -->
   <div class="debug-panel">
-    <span class="debug-label">piece</span> {{ activePieceId ?? '—' }}
+    <table>
+      <tr><td class="debug-label">piece</td><td>{{ activePieceId ?? '—' }}</td></tr>
+      <tr><td class="debug-label">highest</td><td>{{ highestBlock }}</td></tr>
+      <tr><td class="debug-label">seed</td><td>{{ gameSeed ?? '—' }}</td></tr>
+      <tr><td class="debug-label">height</td><td>{{ gameBoardHeight }}</td></tr>
+    </table>
   </div>
 
   <div class="btn-row">
@@ -334,21 +345,30 @@ onMounted(() => {
     </div>
   </dialog>
 
-  <dialog :open="showSeedDialog" class="seed-dialog" v-if="showSeedDialog">
-    <div class="seed-dialog-backdrop" @click="onSeedCancel"></div>
-    <form class="seed-dialog-content" @submit.prevent="onSeedSubmit">
-      <h3>New Seeded Game</h3>
+  <dialog :open="showNewGameDialog" class="seed-dialog" v-if="showNewGameDialog">
+    <div class="seed-dialog-backdrop" @click="onNewGameCancel"></div>
+    <form class="seed-dialog-content" @submit.prevent="onNewGameSubmit">
+      <h3>New Game</h3>
+      <label>
+        Lines
+        <input
+          v-model.number="linesInput"
+          type="number"
+          min="15"
+          max="50"
+          autofocus
+        />
+      </label>
       <label>
         Seed
         <input
           v-model="seedInput"
           type="text"
-          placeholder="Enter a seed (or leave blank for random)"
-          autofocus
+          placeholder="Leave blank for random"
         />
       </label>
       <div class="seed-dialog-actions">
-        <button type="button" @click="onSeedCancel">Cancel</button>
+        <button type="button" @click="onNewGameCancel">Cancel</button>
         <button type="submit">Play</button>
       </div>
     </form>

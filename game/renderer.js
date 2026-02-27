@@ -23,10 +23,27 @@ export class RenderSystem {
 
     this.resize(board);
 
+    const highestRow = this.getHighestRow(board);
+
+    // Scroll for tall boards: when highest placed block exceeds 12 lines from bottom,
+    // shift the board down (camera up) so higher rows become visible.
+    const VISUAL_HEIGHT = 20;
+    if (board.height > VISUAL_HEIGHT) {
+      const linesFromBottom = board.height - highestRow;
+      if (linesFromBottom > 12) {
+        const scrollRows = linesFromBottom - 12;
+        const baseY = this.visualTop + (VISUAL_HEIGHT - board.height) * this.cellSize;
+        this.boardOffsetY = Math.min(baseY + scrollRows * this.cellSize, 0);
+      }
+    }
+
     world.ui = {
       cellSize: this.cellSize,
       boardX: this.boardOffsetX,
-      boardY: this.boardOffsetY,
+      boardY: this.visualTop,
+      highestRow: highestRow < board.height ? board.height - highestRow : 0,
+      seed: world.seed,
+      boardHeight: board.height,
     };
 
     const ctx = this.ctx;
@@ -110,20 +127,22 @@ export class RenderSystem {
     const rightX = ox + board.width * cs + cs * 1.5;
     const leftX = ox - cs * 5.5;
 
-    // Next queue (mini pieces only)
+    // Next queue (mini pieces only) — anchored to visual area, not scrolling board
+    const vy = this.visualTop;
     if (nextQueue) {
       for (let i = 0; i < Math.min(5, nextQueue.queue.length); i++) {
-        this.drawMiniPiece(rightX, oy + cs * 1.2 + i * cs * 2.8, cs * 0.65, nextQueue.queue[i]);
+        this.drawMiniPiece(rightX, vy + cs * 1.2 + i * cs * 2.8, cs * 0.65, nextQueue.queue[i]);
       }
     }
 
-    // Hold piece (mini piece only)
+    // Hold piece (mini piece only) — anchored to visual area
     if (hold && hold.type) {
-      this.drawMiniPiece(leftX, oy + cs * 1.2, cs * 0.65, hold.type, hold.used ? 0.35 : 1);
+      this.drawMiniPiece(leftX, vy + cs * 1.2, cs * 0.65, hold.type, hold.used ? 0.35 : 1);
     }
   }
 
   resize(board) {
+    const VISUAL_HEIGHT = 20;
     const dpr = window.devicePixelRatio || 1;
     const w = window.innerWidth;
     const h = window.innerHeight;
@@ -136,11 +155,25 @@ export class RenderSystem {
 
     const sideCols = 12;
     const cellW = (w * 0.92) / (board.width + sideCols);
-    const cellH = (h * 0.95) / board.height;
+    const cellH = (h * 0.95) / VISUAL_HEIGHT;
     this.cellSize = Math.floor(Math.min(cellW, cellH));
 
     this.boardOffsetX = Math.floor((w - board.width * this.cellSize) / 2);
-    this.boardOffsetY = Math.floor((h - board.height * this.cellSize) / 2);
+    const visualTop = Math.floor((h - VISUAL_HEIGHT * this.cellSize) / 2);
+    this.visualTop = visualTop;
+    // Base position: board bottom-aligned to the bottom of the visual area
+    this.boardOffsetY = visualTop + (VISUAL_HEIGHT - board.height) * this.cellSize;
+  }
+
+  getHighestRow(board) {
+    for (let y = board.bufferHeight; y < board.grid.length; y++) {
+      for (let x = 0; x < board.width; x++) {
+        if (board.grid[y][x] !== null) {
+          return y - board.bufferHeight;
+        }
+      }
+    }
+    return board.height;
   }
 
   drawBlock(x, y, size, color) {

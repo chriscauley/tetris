@@ -13,6 +13,8 @@ const replays = replayFiles.map(f => ({
 function runReplay(recording) {
   const world = createGame(null, {
     seed: recording.seed,
+    boardHeight: recording.boardHeight,
+    cascadeGravity: recording.cascadeGravity,
     mode: 'replay',
     recording,
   })

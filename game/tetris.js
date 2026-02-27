@@ -79,7 +79,11 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mo
 
   world.getRecording = function () {
     if (!recorderSystem) return null;
-    return recorderSystem.getRecording(world.seed);
+    const rec = recorderSystem.getRecording(world.seed);
+    const board = world.getComponent(boardId, 'Board');
+    rec.boardHeight = board.height;
+    rec.cascadeGravity = board.cascadeGravity;
+    return rec;
   };
 
   world.replayTick = function () {

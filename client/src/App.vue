@@ -226,6 +226,8 @@ function startReplay(recording) {
   isPlayWorld = false
   world = createGame(canvas.value, {
     seed: recording.seed,
+    boardHeight: recording.boardHeight,
+    cascadeGravity: recording.cascadeGravity,
     mode: 'replay',
     recording,
   })

@@ -25,6 +25,9 @@ export class RenderSystem {
     this.boardOffsetX = 0;
     this.boardOffsetY = 0;
     this.scrollTarget = 0;
+    this._gradientCache = null;
+    this._gradientOy = null;
+    this._gradientCs = null;
   }
 
   update(world) {
@@ -161,12 +164,17 @@ export class RenderSystem {
       let ghostY = piece.y;
       while (canMove(board, piece.type, piece.rotation, piece.x, ghostY + 1)) ghostY++;
       if (ghostY !== piece.y) {
+        ctx.strokeStyle = PIECE_COLORS[piece.type];
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = 0.6;
+        const gs = cs - 1;
         for (const b of blocks) {
           const dy = ghostY + b.y - board.bufferHeight;
           if (dy >= 0) {
-            this.drawGhostBlock(ox + (piece.x + b.x) * cs, oy + dy * cs, cs, PIECE_COLORS[piece.type]);
+            ctx.strokeRect(ox + (piece.x + b.x) * cs + 1.5, oy + dy * cs + 1.5, gs - 2, gs - 2);
           }
         }
+        ctx.globalAlpha = 1;
       }
 
       // Active piece
@@ -182,10 +190,15 @@ export class RenderSystem {
     // Red gradient at top of board (danger zone, 4 lines)
     const gradTop = oy;
     const gradBot = oy + 4 * cs;
-    const grad = ctx.createLinearGradient(0, gradTop, 0, gradBot);
-    grad.addColorStop(0, 'rgba(255, 0, 0, 0.35)');
-    grad.addColorStop(1, 'rgba(255, 0, 0, 0)');
-    ctx.fillStyle = grad;
+    if (this._gradientOy !== oy || this._gradientCs !== cs) {
+      const grad = ctx.createLinearGradient(0, gradTop, 0, gradBot);
+      grad.addColorStop(0, 'rgba(255, 0, 0, 0.35)');
+      grad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+      this._gradientCache = grad;
+      this._gradientOy = oy;
+      this._gradientCs = cs;
+    }
+    ctx.fillStyle = this._gradientCache;
     ctx.fillRect(ox, gradTop, board.width * cs, 4 * cs);
 
     // Scroll threshold line (12 lines from bottom)
@@ -321,8 +334,8 @@ export class RenderSystem {
     };
   }
 
-  drawBlock(x, y, size, color, nb) {
-    const ctx = this.ctx;
+  drawBlock(x, y, size, color, nb, target) {
+    const ctx = target || this.ctx;
     const s = size - 1;
     let fx = x + 0.5, fy = y + 0.5, fw = s, fh = s;
     if (nb) {
@@ -333,21 +346,19 @@ export class RenderSystem {
     }
     ctx.fillStyle = color;
     ctx.fillRect(fx, fy, fw, fh);
-    if (!nb || !nb.top) {
+    const drawTop = !nb || !nb.top;
+    const drawLeft = !nb || !nb.left;
+    if (drawTop || drawLeft) {
       ctx.fillStyle = 'rgba(255,255,255,0.15)';
-      ctx.fillRect(x + 0.5, y + 0.5, s, s * 0.12);
+      if (drawTop)  ctx.fillRect(x + 0.5, y + 0.5, s, s * 0.12);
+      if (drawLeft) ctx.fillRect(x + 0.5, y + 0.5, s * 0.12, s);
     }
-    if (!nb || !nb.left) {
-      ctx.fillStyle = 'rgba(255,255,255,0.15)';
-      ctx.fillRect(x + 0.5, y + 0.5, s * 0.12, s);
-    }
-    if (!nb || !nb.right) {
+    const drawRight = !nb || !nb.right;
+    const drawBottom = !nb || !nb.bottom;
+    if (drawRight || drawBottom) {
       ctx.fillStyle = 'rgba(0,0,0,0.25)';
-      ctx.fillRect(x + s * 0.88 + 0.5, y + 0.5, s * 0.12, s);
-    }
-    if (!nb || !nb.bottom) {
-      ctx.fillStyle = 'rgba(0,0,0,0.25)';
-      ctx.fillRect(x + 0.5, y + s * 0.88 + 0.5, s, s * 0.12);
+      if (drawRight)  ctx.fillRect(x + s * 0.88 + 0.5, y + 0.5, s * 0.12, s);
+      if (drawBottom) ctx.fillRect(x + 0.5, y + s * 0.88 + 0.5, s, s * 0.12);
     }
   }
 

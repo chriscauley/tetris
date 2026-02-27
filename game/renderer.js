@@ -29,6 +29,8 @@ export class RenderSystem {
     this._gradientOy = null;
     this._gradientCs = null;
     this._ghostCache = { ghostY: 0, pieceX: -1, pieceY: -1, pieceType: -1, pieceRotation: -1, boardVersion: -1 };
+    this._neighborCache = null;
+    this._neighborCacheVersion = -1;
   }
 
   update(world) {
@@ -136,18 +138,18 @@ export class RenderSystem {
         }
       }
     } else {
+      if (this._neighborCacheVersion !== board.gridVersion) {
+        this._buildNeighborCache(board, pieceTable);
+      }
       for (let y = board.bufferHeight; y < board.grid.length; y++) {
         for (let x = 0; x < board.width; x++) {
           const cell = board.grid[y][x];
           if (cell !== null) {
             const entry = pieceTable.pieces[cell];
-            const nb = board.gravityMode === 'sticky'
-              ? this.gridNeighborsByType(board.grid, pieceTable, x, y)
-              : this.gridNeighbors(board.grid, x, y);
             this.drawBlock(
               ox + x * cs,
               oy + (y - board.bufferHeight) * cs,
-              cs, PIECE_COLORS[entry.type], nb
+              cs, PIECE_COLORS[entry.type], this._neighborCache[y][x]
             );
           }
         }
@@ -312,6 +314,26 @@ export class RenderSystem {
       const step = board.cascadeAnimQueue.shift();
       board.cascadeAnim = { ...step, phase: 'fall', timer: 0, fallDuration: fallDur };
     }
+  }
+
+  _buildNeighborCache(board, pieceTable) {
+    const rows = board.grid.length;
+    const cols = board.width;
+    if (!this._neighborCache || this._neighborCache.length !== rows || this._neighborCache[0].length !== cols) {
+      this._neighborCache = Array.from({ length: rows }, () => Array(cols).fill(null));
+    }
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        if (board.grid[y][x] !== null) {
+          this._neighborCache[y][x] = board.gravityMode === 'sticky'
+            ? this.gridNeighborsByType(board.grid, pieceTable, x, y)
+            : this.gridNeighbors(board.grid, x, y);
+        } else {
+          this._neighborCache[y][x] = null;
+        }
+      }
+    }
+    this._neighborCacheVersion = board.gridVersion;
   }
 
   gridNeighborsByType(grid, pieceTable, x, y) {

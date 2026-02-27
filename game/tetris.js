@@ -18,7 +18,7 @@ function decodeCell(ch) {
   return i >= 0 ? i : null;
 }
 
-export function createGame(canvas, { boardWidth = 10, boardHeight = 20, seed, mode = 'play', recording } = {}) {
+export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mode = 'play', recording } = {}) {
   const rng = seedrandom(seed, { state: true });
   const world = new World();
   world.seed = seed;

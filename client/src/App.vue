@@ -71,7 +71,7 @@ function readWorldState() {
     boardY.value = ui.boardY
     highestBlock.value = ui.highestRow ?? 0
     gameSeed.value = ui.seed ?? ''
-    gameBoardHeight.value = ui.boardHeight ?? 20
+    gameBoardHeight.value = ui.boardHeight ?? 24
   }
   const boardId = world.query('Board', 'Score', 'GameState')[0]
   if (boardId === undefined) return
@@ -123,7 +123,7 @@ function startGameLoop() {
 
 let isPlayWorld = false
 
-function startGame(seed, boardHeight = 20) {
+function startGame(seed, boardHeight = 24) {
   stopReplay()
   if (world && isPlayWorld && boardHeight === currentBoardHeight) {
     world.restart(seed)
@@ -143,7 +143,7 @@ function onNewGame() {
 
 function onNewGameSubmit() {
   const seed = seedInput.value.trim() || undefined
-  const boardHeight = Math.max(15, Math.min(50, Math.floor(Number(linesInput.value) || 20)))
+  const boardHeight = Math.max(15, Math.min(50, Math.floor(Number(linesInput.value) || 24)))
   showNewGameDialog.value = false
   localStorage.setItem('tetris-settings', JSON.stringify({ seed, boardHeight }))
   startGame(seed, boardHeight)

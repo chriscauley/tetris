@@ -124,6 +124,28 @@ export class RenderSystem {
       }
     }
 
+    // Red gradient at top of board (danger zone, 4 lines)
+    if (board.height > VISUAL_HEIGHT) {
+      const gradTop = oy;
+      const gradBot = oy + 4 * cs;
+      const grad = ctx.createLinearGradient(0, gradTop, 0, gradBot);
+      grad.addColorStop(0, 'rgba(255, 0, 0, 0.35)');
+      grad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(ox, gradTop, board.width * cs, 4 * cs);
+    }
+
+    // Scroll threshold line (12 lines from bottom)
+    if (board.height > VISUAL_HEIGHT) {
+      const thresholdY = oy + (board.height - 12) * cs;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(ox, thresholdY);
+      ctx.lineTo(ox + board.width * cs, thresholdY);
+      ctx.stroke();
+    }
+
     // Board border
     ctx.strokeStyle = '#888';
     ctx.lineWidth = 2;

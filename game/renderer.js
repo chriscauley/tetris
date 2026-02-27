@@ -321,8 +321,8 @@ export class RenderSystem {
     const ctx = this.ctx;
     const s = size - 1;
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.globalAlpha = 0.15;
+    ctx.lineWidth = 3;
+    ctx.globalAlpha = 0.6;
     ctx.strokeRect(x + 1.5, y + 1.5, s - 2, s - 2);
     ctx.globalAlpha = 1;
   }

@@ -28,6 +28,7 @@ export class RenderSystem {
     this._gradientCache = null;
     this._gradientOy = null;
     this._gradientCs = null;
+    this._ghostCache = { ghostY: 0, pieceX: -1, pieceY: -1, pieceType: -1, pieceRotation: -1, boardVersion: -1 };
   }
 
   update(world) {
@@ -160,9 +161,23 @@ export class RenderSystem {
       const blocks = getBlocks(piece.type, piece.rotation);
       const blockSet = new Set(blocks.map(b => b.x + ',' + b.y));
 
-      // Ghost
-      let ghostY = piece.y;
-      while (canMove(board, piece.type, piece.rotation, piece.x, ghostY + 1)) ghostY++;
+      // Ghost (cached position)
+      let ghostY;
+      const gc = this._ghostCache;
+      if (gc.pieceX === piece.x && gc.pieceY === piece.y &&
+          gc.pieceType === piece.type && gc.pieceRotation === piece.rotation &&
+          gc.boardVersion === board.gridVersion) {
+        ghostY = gc.ghostY;
+      } else {
+        ghostY = piece.y;
+        while (canMove(board, piece.type, piece.rotation, piece.x, ghostY + 1)) ghostY++;
+        gc.ghostY = ghostY;
+        gc.pieceX = piece.x;
+        gc.pieceY = piece.y;
+        gc.pieceType = piece.type;
+        gc.pieceRotation = piece.rotation;
+        gc.boardVersion = board.gridVersion;
+      }
       if (ghostY !== piece.y) {
         ctx.strokeStyle = PIECE_COLORS[piece.type];
         ctx.lineWidth = 3;

@@ -5,6 +5,19 @@ import { InputSystem, SpawnSystem, MovementSystem, GravitySystem, LockSystem, Li
 import { RenderSystem } from './renderer.js';
 import { RecorderSystem, ReplaySystem } from './recorder.js';
 
+const CELL_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+function encodeCell(id) {
+  if (id === null) return ' ';
+  return CELL_CHARS[id] ?? '?';
+}
+
+function decodeCell(ch) {
+  if (ch === ' ') return null;
+  const i = CELL_CHARS.indexOf(ch);
+  return i >= 0 ? i : null;
+}
+
 export function createGame(canvas, { boardWidth = 10, boardHeight = 20, seed, mode = 'play', recording } = {}) {
   const rng = seedrandom(seed, { state: true });
   const world = new World();
@@ -92,7 +105,7 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 20, seed, mo
         } else if (name === 'Board') {
           const grid = {};
           data.grid.forEach((row, y) => {
-            if (row.some(cell => cell !== null)) grid[y] = [...row];
+            if (row.some(cell => cell !== null)) grid[y] = row.map(encodeCell).join('');
           });
           entity[name] = {
             width: data.width,
@@ -124,7 +137,7 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 20, seed, mo
         } else if (name === 'Board') {
           const totalRows = data.height + data.bufferHeight;
           const grid = Array.from({ length: totalRows }, (_, y) =>
-            data.grid[y] ? [...data.grid[y]] : Array(data.width).fill(null)
+            data.grid[y] ? [...data.grid[y]].map(decodeCell) : Array(data.width).fill(null)
           );
           components[name] = {
             width: data.width,

@@ -169,10 +169,10 @@ function getFullRecording() {
   const rec = world.getRecording()
   if (!rec) return null
   const board = world.getComponent(world.boardId, 'Board')
-  const grid = {}
-  board.grid.forEach((row, y) => {
-    if (row.some(cell => cell !== null)) grid[y] = row.map(c => c ?? 0)
-  })
+  const CELL_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  const grid = board.grid
+    .filter(row => row.some(cell => cell !== null))
+    .map(row => row.map(c => c === null ? ' ' : (CELL_CHARS[c] ?? '?')).join(''))
   rec.expectedGrid = grid
   return rec
 }

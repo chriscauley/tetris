@@ -28,20 +28,22 @@ function onSubmit() {
     sparsity: form.gameMode === 'b' ? Math.max(0, Math.floor(Number(form.sparsity) || 0)) : 0,
   })
 }
+
+const gameModeOptions = [
+  { value: 'a', label: 'A-Type (Marathon)' },
+  { value: 'b', label: 'B-Type (25 Lines)' },
+]
+
+const gravityOptions = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'cascade', label: 'Cascade' },
+  { value: 'sticky', label: 'Sticky' },
+]
 </script>
 
 <template>
   <FormKit v-model="form" type="form" :actions="false" @submit="onSubmit">
-    <FormKit
-      type="select"
-      name="gameMode"
-      label="Mode"
-      autofocus
-      :options="[
-        { value: 'a', label: 'A-Type (Marathon)' },
-        { value: 'b', label: 'B-Type (25 Lines)' },
-      ]"
-    />
+    <FormKit type="select" name="gameMode" label="Mode" autofocus :options="gameModeOptions" />
     <FormKit type="number" name="startLevel" label="Starting Level" min="1" max="10" />
     <fieldset v-if="form.gameMode === 'b'">
       <legend>B-Type Options</legend>
@@ -52,16 +54,7 @@ function onSubmit() {
     </fieldset>
     <FormKit type="number" name="boardHeight" label="Board Height" min="15" max="50" />
     <FormKit type="text" name="seed" label="Seed" placeholder="Leave blank for random" />
-    <FormKit
-      type="select"
-      name="gravityMode"
-      label="Gravity"
-      :options="[
-        { value: 'normal', label: 'Normal' },
-        { value: 'cascade', label: 'Cascade' },
-        { value: 'sticky', label: 'Sticky' },
-      ]"
-    />
+    <FormKit type="select" name="gravityMode" label="Gravity" :options="gravityOptions" />
   </FormKit>
   <div class="modal__actions">
     <button class="btn -secondary" type="button" @click="$emit('cancel')">Cancel</button>

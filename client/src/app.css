@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./formkit.css";
 
 * {
   @apply m-0 p-0 box-border;
@@ -126,43 +127,3 @@ canvas {
   @apply text-neutral-500 pr-2 text-right;
 }
 
-.seed-dialog-content input[type="range"] {
-  @apply block w-full mt-1.5 cursor-pointer accent-indigo-500;
-}
-
-.seed-dialog-content .formkit-outer {
-  @apply mb-4;
-}
-
-.formkit-label {
-  @apply text-neutral-400;
-}
-
-.seed-dialog-content .formkit-help {
-  @apply text-neutral-500;
-}
-
-.seed-dialog-content .formkit-input {
-  @apply text-white font-mono text-sm bg-gray-900;
-}
-
-.seed-dialog-content .formkit-input:focus {
-  @apply outline-none border-neutral-400;
-}
-
-.seed-dialog-content select.formkit-input {
-  @apply p-2 w-full;
-}
-
-.seed-dialog-content input[type="number"].formkit-input {
-  @apply p-2;
-  -moz-appearance: textfield;
-}
-
-.seed-dialog-content input[type="text"].formkit-input {
-  @apply p-2 w-full;
-}
-
-.seed-dialog-content input[type="range"].formkit-input {
-  @apply bg-transparent border-none;
-}

@@ -1,0 +1,23 @@
+.formkit-outer {
+  @apply mb-0;
+}
+
+.formkit-form {
+  @apply flex flex-col gap-4;
+}
+
+.formkit-label {
+  @apply text-neutral-400;
+}
+
+.formkit-help {
+  @apply text-neutral-500;
+}
+
+.formkit-input {
+  @apply text-white bg-gray-900;
+}
+
+.formkit-input:focus {
+  @apply outline-none border-neutral-400;
+}

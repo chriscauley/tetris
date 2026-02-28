@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="8" fill="#eee"/>
   <style>
     text {
       font-family: "Kannada Sangam MN", "Kannada MN", Arial, Helvetica, sans-serif;

@@ -69,7 +69,7 @@ canvas {
 }
 
 .seed-dialog {
-  @apply fixed inset-0 flex items-center justify-center z-10 border-none bg-transparent p-0;
+  @apply fixed inset-0 flex items-center justify-center z-10 border-none bg-transparent p-0 w-full h-full;
 }
 
 .seed-dialog-content {
@@ -81,32 +81,6 @@ canvas {
   @apply mb-4;
 }
 
-.seed-dialog-content label {
-  @apply block mb-4 text-neutral-400;
-  font-size: 13px;
-}
-
-.seed-dialog-content input:not([type="checkbox"]) {
-  @apply block w-full mt-1.5 p-2 text-white rounded font-mono text-sm bg-gray-900 border border-neutral-600;
-}
-
-.seed-dialog-content .checkbox-label {
-  @apply flex items-center gap-2 mb-4 text-neutral-400 cursor-pointer;
-  font-size: 13px;
-}
-
-.seed-dialog-content input[type="checkbox"] {
-  @apply w-4 h-4 cursor-pointer accent-indigo-500;
-}
-
-.seed-dialog-content input:focus {
-  @apply outline-none border-neutral-400;
-}
-
-.seed-dialog-content input[type="number"] {
-  -moz-appearance: textfield;
-  width: 5em;
-}
 
 .seed-dialog-actions {
   @apply flex justify-end gap-2;
@@ -162,7 +136,6 @@ canvas {
 
 .formkit-label {
   @apply text-neutral-400;
-  font-size: 13px;
 }
 
 .seed-dialog-content .formkit-help {
@@ -170,7 +143,7 @@ canvas {
 }
 
 .seed-dialog-content .formkit-input {
-  @apply text-white font-mono text-sm bg-gray-900 border border-neutral-600 rounded;
+  @apply text-white font-mono text-sm bg-gray-900;
 }
 
 .seed-dialog-content .formkit-input:focus {
@@ -184,7 +157,6 @@ canvas {
 .seed-dialog-content input[type="number"].formkit-input {
   @apply p-2;
   -moz-appearance: textfield;
-  width: 5em;
 }
 
 .seed-dialog-content input[type="text"].formkit-input {

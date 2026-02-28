@@ -252,13 +252,10 @@ function getFullRecording() {
   const rec = world.getRecording()
   if (!rec) return null
   const board = world.getComponent(world.boardId, 'Board')
-  const CELL_CHARS =
-    '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  const CELL_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
   const grid = board.grid
     .filter((row) => row.some((cell) => cell !== null))
-    .map((row) =>
-      row.map((c) => (c === null ? ' ' : (CELL_CHARS[c] ?? '?'))).join(''),
-    )
+    .map((row) => row.map((c) => (c === null ? ' ' : (CELL_CHARS[c] ?? '?'))).join(''))
   rec.expectedGrid = grid
   return rec
 }
@@ -297,9 +294,7 @@ function startReplay(recording) {
   world = createGame(canvas.value, {
     seed: recording.seed,
     boardHeight: recording.boardHeight,
-    gravityMode:
-      recording.gravityMode ||
-      (recording.cascadeGravity ? 'cascade' : 'normal'),
+    gravityMode: recording.gravityMode || (recording.cascadeGravity ? 'cascade' : 'normal'),
     visualHeight: VISUAL_HEIGHT,
     mode: 'replay',
     recording,
@@ -376,35 +371,20 @@ onMounted(() => {
     }
   })
 
-  let seed,
-    boardHeight,
-    gravityMode,
-    gameMode,
-    startLevel,
-    garbageHeight,
-    sparsity
+  let seed, boardHeight, gravityMode, gameMode, startLevel, garbageHeight, sparsity
   try {
     const saved = JSON.parse(localStorage.getItem('tetris-settings'))
     if (saved) {
       seed = saved.seed
       boardHeight = saved.boardHeight
-      gravityMode =
-        saved.gravityMode || (saved.cascadeGravity ? 'cascade' : 'normal')
+      gravityMode = saved.gravityMode || (saved.cascadeGravity ? 'cascade' : 'normal')
       gameMode = saved.gameMode
       startLevel = saved.startLevel
       garbageHeight = saved.garbageHeight
       sparsity = saved.sparsity
     }
   } catch {}
-  startGame(
-    seed,
-    boardHeight,
-    gravityMode,
-    gameMode,
-    startLevel,
-    garbageHeight,
-    sparsity,
-  )
+  startGame(seed, boardHeight, gravityMode, gameMode, startLevel, garbageHeight, sparsity)
 })
 </script>
 
@@ -473,53 +453,26 @@ onMounted(() => {
   </div>
 
   <!-- Game over overlay -->
-  <div
-    v-if="game.phase === 'gameover' && game.cellSize > 0"
-    class="game-over-overlay"
-    :style="gameOverStyle"
-  >
-    <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">
-      GAME OVER
-    </div>
-    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">
-      Press R to restart
-    </div>
+  <div v-if="game.phase === 'gameover' && game.cellSize > 0" class="game-over-overlay" :style="gameOverStyle">
+    <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">GAME OVER</div>
+    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">Press R to restart</div>
   </div>
 
   <!-- Victory overlay -->
-  <div
-    v-if="game.phase === 'victory' && game.cellSize > 0"
-    class="game-over-overlay"
-    :style="gameOverStyle"
-  >
-    <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">
-      SUCCESS!
-    </div>
-    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">
-      25 Lines Cleared!
-    </div>
-    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">
-      Press R to play again
-    </div>
+  <div v-if="game.phase === 'victory' && game.cellSize > 0" class="game-over-overlay" :style="gameOverStyle">
+    <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">SUCCESS!</div>
+    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">25 Lines Cleared!</div>
+    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">Press R to play again</div>
   </div>
 
   <!-- Pause overlay -->
   <div
-    v-if="
-      paused &&
-      game.phase !== 'gameover' &&
-      game.phase !== 'victory' &&
-      game.cellSize > 0
-    "
+    v-if="paused && game.phase !== 'gameover' && game.phase !== 'victory' && game.cellSize > 0"
     class="game-over-overlay"
     :style="gameOverStyle"
   >
-    <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">
-      PAUSED
-    </div>
-    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">
-      Press P to resume
-    </div>
+    <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">PAUSED</div>
+    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">Press P to resume</div>
   </div>
 
   <!-- Debug panel -->
@@ -558,51 +511,25 @@ onMounted(() => {
     <button class="btn -secondary" @click="openDebugSettings">Debug</button>
   </div>
 
-  <UnrestDialog
-    :open="dialogs.state"
-    title="Game State"
-    content-class="modal__content--wide"
-    @close="closeState"
-  >
+  <UnrestDialog :open="dialogs.state" title="Game State" content-class="modal__content--wide" @close="closeState">
     <pre class="state-pre">{{ stateJson }}</pre>
     <template #actions>
-      <button class="btn -secondary" type="button" @click="closeState">
-        Close
-      </button>
+      <button class="btn -secondary" type="button" @click="closeState">Close</button>
     </template>
   </UnrestDialog>
 
-  <UnrestDialog
-    :open="dialogs.replay"
-    title="Replay Data"
-    content-class="modal__content--wide"
-    @close="closeReplay"
-  >
+  <UnrestDialog :open="dialogs.replay" title="Replay Data" content-class="modal__content--wide" @close="closeReplay">
     <pre class="state-pre">{{ replayJson }}</pre>
     <template #actions>
-      <button class="btn -secondary" type="button" @click="closeReplay">
-        Close
-      </button>
+      <button class="btn -secondary" type="button" @click="closeReplay">Close</button>
     </template>
   </UnrestDialog>
 
-  <UnrestDialog
-    :open="dialogs.debug"
-    title="Debug Settings"
-    @close="closeDebugSettings"
-  >
+  <UnrestDialog :open="dialogs.debug" title="Debug Settings" @close="closeDebugSettings">
     <DebugForm v-model="animSlowdown" @close="closeDebugSettings" />
   </UnrestDialog>
 
-  <UnrestDialog
-    :open="dialogs.newGame"
-    title="New Game"
-    @close="onNewGameCancel"
-  >
-    <NewGameForm
-      :defaults="newGameDefaults"
-      @submit="onNewGameSubmit"
-      @cancel="onNewGameCancel"
-    />
+  <UnrestDialog :open="dialogs.newGame" title="New Game" @close="onNewGameCancel">
+    <NewGameForm :defaults="newGameDefaults" @submit="onNewGameSubmit" @cancel="onNewGameCancel" />
   </UnrestDialog>
 </template>

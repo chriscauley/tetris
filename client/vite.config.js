@@ -16,9 +16,7 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@game': fileURLToPath(new URL('../game', import.meta.url)),
-      seedrandom: fileURLToPath(
-        new URL('./node_modules/seedrandom', import.meta.url),
-      ),
+      seedrandom: fileURLToPath(new URL('./node_modules/seedrandom', import.meta.url)),
     },
   },
   test: {

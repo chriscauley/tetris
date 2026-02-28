@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { reactive } from 'vue'
 
 const props = defineProps({
   defaults: Object,
@@ -7,32 +7,34 @@ const props = defineProps({
 
 const emit = defineEmits(['submit', 'cancel'])
 
-const seedInput = ref('')
-const boardHeightInput = ref(props.defaults?.boardHeight ?? 20)
-const gravityModeInput = ref(props.defaults?.gravityMode ?? 'normal')
-const gameModeInput = ref(props.defaults?.gameMode ?? 'a')
-const startLevelInput = ref(props.defaults?.startLevel ?? 1)
-const garbageHeightInput = ref(props.defaults?.garbageHeight ?? 0)
-const sparsityInput = ref(props.defaults?.sparsity ?? 0)
+const form = reactive({
+  seed: '',
+  boardHeight: props.defaults?.boardHeight ?? 20,
+  gravityMode: props.defaults?.gravityMode ?? 'normal',
+  gameMode: props.defaults?.gameMode ?? 'a',
+  startLevel: props.defaults?.startLevel ?? 1,
+  garbageHeight: props.defaults?.garbageHeight ?? 0,
+  sparsity: props.defaults?.sparsity ?? 0,
+})
 
 function onSubmit() {
   emit('submit', {
-    seed: seedInput.value.trim() || undefined,
-    boardHeight: Math.max(15, Math.min(50, Math.floor(Number(boardHeightInput.value) || 24))),
-    gravityMode: gravityModeInput.value,
-    gameMode: gameModeInput.value,
-    startLevel: Math.max(1, Math.min(10, Math.floor(Number(startLevelInput.value) || 1))),
-    garbageHeight: gameModeInput.value === 'b' ? Math.max(0, Math.min(5, Math.floor(Number(garbageHeightInput.value) || 0))) : 0,
-    sparsity: gameModeInput.value === 'b' ? Math.max(0, Math.floor(Number(sparsityInput.value) || 0)) : 0,
+    seed: form.seed.trim() || undefined,
+    boardHeight: Math.max(15, Math.min(50, Math.floor(Number(form.boardHeight) || 24))),
+    gravityMode: form.gravityMode,
+    gameMode: form.gameMode,
+    startLevel: Math.max(1, Math.min(10, Math.floor(Number(form.startLevel) || 1))),
+    garbageHeight: form.gameMode === 'b' ? Math.max(0, Math.min(5, Math.floor(Number(form.garbageHeight) || 0))) : 0,
+    sparsity: form.gameMode === 'b' ? Math.max(0, Math.floor(Number(form.sparsity) || 0)) : 0,
   })
 }
 </script>
 
 <template>
-  <FormKit type="form" @submit="onSubmit" :actions="false">
+  <FormKit type="form" v-model="form" @submit="onSubmit" :actions="false">
     <FormKit
       type="select"
-      v-model="gameModeInput"
+      name="gameMode"
       label="Mode"
       autofocus
       :options="[
@@ -42,43 +44,43 @@ function onSubmit() {
     />
     <FormKit
       type="number"
-      v-model="startLevelInput"
+      name="startLevel"
       label="Starting Level"
       min="1"
       max="10"
     />
     <FormKit
-      v-if="gameModeInput === 'b'"
+      v-if="form.gameMode === 'b'"
       type="number"
-      v-model="garbageHeightInput"
+      name="garbageHeight"
       label="Garbage Height"
       min="0"
       max="5"
     />
     <FormKit
-      v-if="gameModeInput === 'b'"
+      v-if="form.gameMode === 'b'"
       type="number"
-      v-model="sparsityInput"
+      name="sparsity"
       label="Sparsity"
       min="0"
       max="5"
     />
     <FormKit
       type="number"
-      v-model="boardHeightInput"
+      name="boardHeight"
       label="Board Height"
       min="15"
       max="50"
     />
     <FormKit
       type="text"
-      v-model="seedInput"
+      name="seed"
       label="Seed"
       placeholder="Leave blank for random"
     />
     <FormKit
       type="select"
-      v-model="gravityModeInput"
+      name="gravityMode"
       label="Gravity"
       :options="[
         { value: 'normal', label: 'Normal' },

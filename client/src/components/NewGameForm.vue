@@ -61,22 +61,25 @@ function onSubmit() {
       min="1"
       max="10"
     />
-    <FormKit
-      v-if="form.gameMode === 'b'"
-      type="number"
-      name="garbageHeight"
-      label="Garbage Height"
-      min="0"
-      max="5"
-    />
-    <FormKit
-      v-if="form.gameMode === 'b'"
-      type="number"
-      name="sparsity"
-      label="Sparsity"
-      min="0"
-      max="5"
-    />
+    <fieldset v-if="form.gameMode === 'b'">
+      <legend>B-Type Options</legend>
+      <div class="grid gap-4">
+        <FormKit
+          type="number"
+          name="garbageHeight"
+          label="Garbage Height"
+          min="0"
+          max="5"
+        />
+        <FormKit
+          type="number"
+          name="sparsity"
+          label="Sparsity"
+          min="0"
+          max="5"
+        />
+      </div>
+    </fieldset>
     <FormKit
       type="number"
       name="boardHeight"

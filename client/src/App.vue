@@ -92,7 +92,7 @@ const gameOverStyle = computed(() => ({
 }))
 
 // Engine sync
-function readWorldState() {
+const readWorldState = () => {
   if (!world) return
   const ui = world.ui
   if (ui) {
@@ -131,18 +131,18 @@ function readWorldState() {
 }
 
 // Game loop
-function stopGameLoop() {
+const stopGameLoop = () => {
   if (gameAnimId) {
     cancelAnimationFrame(gameAnimId)
     gameAnimId = null
   }
 }
 
-function startGameLoop() {
+const startGameLoop = () => {
   stopGameLoop()
   let lastTime = performance.now()
   let accumulator = 0
-  function loop(time) {
+  const loop = (time) => {
     const delta = Math.min(time - lastTime, 100)
     lastTime = time
     if (!paused.value) {
@@ -158,16 +158,18 @@ function startGameLoop() {
   gameAnimId = requestAnimationFrame(loop)
 }
 
-function startGame(
-  seed,
-  boardHeight = 24,
-  gravityMode = 'normal',
-  gameMode = 'a',
-  startLevel = 1,
-  garbageHeight = 0,
-  sparsity = 0,
-) {
+// Replay (before startGame since it depends on stopReplay)
+const stopReplay = () => {
+  if (replayAnimId) {
+    cancelAnimationFrame(replayAnimId)
+    replayAnimId = null
+  }
+  replaying.value = false
+}
+
+const startGame = (settings = {}) => {
   stopReplay()
+  const { seed, boardHeight = 24, gravityMode = 'normal', gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0 } = settings
   const sameConfig =
     world &&
     isPlayWorld &&
@@ -180,74 +182,49 @@ function startGame(
   if (sameConfig) {
     world.restart(seed)
   } else {
-    world = createGame(canvas.value, {
-      seed,
-      boardHeight,
-      gravityMode,
-      visualHeight: VISUAL_HEIGHT,
-      gameMode,
-      startLevel,
-      garbageHeight,
-      sparsity,
-    })
-    Object.assign(currentSettings, {
-      boardHeight,
-      gravityMode,
-      gameMode,
-      startLevel,
-      garbageHeight,
-      sparsity,
-    })
+    world = createGame(canvas.value, { ...settings, visualHeight: VISUAL_HEIGHT })
+    Object.assign(currentSettings, { boardHeight, gravityMode, gameMode, startLevel, garbageHeight, sparsity })
     isPlayWorld = true
     startGameLoop()
   }
 }
 
 // New game dialog
-function onNewGame() {
+const onNewGame = () => {
   newGameDefaults.value = { ...currentSettings }
   dialogs.newGame = true
 }
 
-function onNewGameSubmit(data) {
+const onNewGameSubmit = (data) => {
   dialogs.newGame = false
+  data.seed = data.seed?.trim() || undefined
   localStorage.setItem('tetris-settings', JSON.stringify(data))
-  startGame(
-    data.seed,
-    data.boardHeight,
-    data.gravityMode,
-    data.gameMode,
-    data.startLevel,
-    data.garbageHeight,
-    data.sparsity,
-  )
+  startGame(data)
 }
 
-function onNewGameCancel() {
-  dialogs.newGame = false
-}
+const onNewGameCancel = () => { dialogs.newGame = false }
 
 // State dialog
-function copyState() {
+const copyState = () => {
   if (!world) return
   const json = JSON.stringify(world.exportState(), null, 2)
   navigator.clipboard.writeText(json)
 }
 
-function showState() {
+const showState = () => {
   if (!world) return
   paused.value = true
   stateJson.value = JSON.stringify(world.exportState(), null, 2)
   dialogs.state = true
 }
 
-function closeState() {
+const closeState = () => {
   dialogs.state = false
   paused.value = false
 }
 
 // Replay
-function getFullRecording() {
+const getFullRecording = () => {
   if (!world) return null
   const rec = world.getRecording()
   if (!rec) return null
@@ -260,7 +237,7 @@ function getFullRecording() {
   return rec
 }
 
-function showReplay() {
+const showReplay = () => {
   const rec = getFullRecording()
   if (!rec) return
   paused.value = true
@@ -268,47 +245,28 @@ function showReplay() {
   dialogs.replay = true
 }
 
-function closeReplay() {
+const closeReplay = () => {
   dialogs.replay = false
   paused.value = false
 }
 
-function copyReplay() {
+const copyReplay = () => {
   const rec = getFullRecording()
   if (!rec) return
   navigator.clipboard.writeText(JSON.stringify(rec))
 }
 
-function stopReplay() {
-  if (replayAnimId) {
-    cancelAnimationFrame(replayAnimId)
-    replayAnimId = null
-  }
-  replaying.value = false
-}
-
-function startReplay(recording) {
+const startReplay = (recording) => {
   stopReplay()
   stopGameLoop()
   isPlayWorld = false
-  world = createGame(canvas.value, {
-    seed: recording.seed,
-    boardHeight: recording.boardHeight,
-    gravityMode: recording.gravityMode || (recording.cascadeGravity ? 'cascade' : 'normal'),
-    visualHeight: VISUAL_HEIGHT,
-    mode: 'replay',
-    recording,
-    gameMode: recording.gameMode || 'a',
-    startLevel: recording.startLevel || 1,
-    garbageHeight: recording.garbageHeight || 0,
-    sparsity: recording.sparsity || 0,
-  })
+  world = createGame(canvas.value, { ...recording, visualHeight: VISUAL_HEIGHT, mode: 'replay', recording })
   replaying.value = true
 
   let lastTime = performance.now()
   let accumulator = 0
 
-  function replayLoop(time) {
+  const replayLoop = (time) => {
     const delta = Math.min(time - lastTime, 100)
     lastTime = time
     accumulator += delta
@@ -330,7 +288,7 @@ function startReplay(recording) {
   replayAnimId = requestAnimationFrame(replayLoop)
 }
 
-async function loadReplay() {
+const loadReplay = async () => {
   try {
     const text = await navigator.clipboard.readText()
     const recording = JSON.parse(text)
@@ -351,13 +309,8 @@ watch(animSlowdown, () => {
   world.debug.animSlowdown = animSlowdown.value
 })
 
-function openDebugSettings() {
-  dialogs.debug = true
-}
-
-function closeDebugSettings() {
-  dialogs.debug = false
-}
+const openDebugSettings = () => { dialogs.debug = true }
+const closeDebugSettings = () => { dialogs.debug = false }
 
 // Init
 onMounted(() => {
@@ -371,20 +324,15 @@ onMounted(() => {
     }
   })
 
-  let seed, boardHeight, gravityMode, gameMode, startLevel, garbageHeight, sparsity
+  let settings = {}
   try {
     const saved = JSON.parse(localStorage.getItem('tetris-settings'))
     if (saved) {
-      seed = saved.seed
-      boardHeight = saved.boardHeight
-      gravityMode = saved.gravityMode || (saved.cascadeGravity ? 'cascade' : 'normal')
-      gameMode = saved.gameMode
-      startLevel = saved.startLevel
-      garbageHeight = saved.garbageHeight
-      sparsity = saved.sparsity
+      settings = saved
+      if (saved.cascadeGravity && !saved.gravityMode) settings.gravityMode = 'cascade'
     }
   } catch {}
-  startGame(seed, boardHeight, gravityMode, gameMode, startLevel, garbageHeight, sparsity)
+  startGame(settings)
 })
 </script>
 

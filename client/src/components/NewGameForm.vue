@@ -7,27 +7,9 @@ const props = defineProps({
 
 const emit = defineEmits(['submit', 'cancel'])
 
-const form = reactive({
-  seed: '',
-  boardHeight: props.defaults?.boardHeight ?? 20,
-  gravityMode: props.defaults?.gravityMode ?? 'normal',
-  gameMode: props.defaults?.gameMode ?? 'a',
-  startLevel: props.defaults?.startLevel ?? 1,
-  garbageHeight: props.defaults?.garbageHeight ?? 0,
-  sparsity: props.defaults?.sparsity ?? 0,
-})
+const form = reactive({ ...props.defaults })
 
-function onSubmit() {
-  emit('submit', {
-    seed: form.seed.trim() || undefined,
-    boardHeight: form.boardHeight,
-    gravityMode: form.gravityMode,
-    gameMode: form.gameMode,
-    startLevel: form.startLevel,
-    garbageHeight: form.gameMode === 'b' ? form.garbageHeight : 0,
-    sparsity: form.gameMode === 'b' ? form.sparsity : 0,
-  })
-}
+const onSubmit = () => emit('submit', form)
 
 const range = (min, max) => Array.from({ length: max - min + 1 }, (_, i) => min + i)
 

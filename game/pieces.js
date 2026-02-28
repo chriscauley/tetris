@@ -33,7 +33,7 @@ export const PIECE_COLORS = [
   '#808080', // G (garbage)
 ];
 
-function rotateMatrix(matrix) {
+const rotateMatrix = (matrix) => {
   const n = matrix.length;
   const result = Array.from({ length: n }, () => Array(n).fill(0));
   for (let y = 0; y < n; y++)
@@ -42,13 +42,13 @@ function rotateMatrix(matrix) {
   return result;
 }
 
-export function getRotatedShape(type, rotation) {
+export const getRotatedShape = (type, rotation) => {
   let shape = PIECE_SHAPES[type];
   for (let i = 0; i < rotation; i++) shape = rotateMatrix(shape);
   return shape;
 }
 
-export function getBlocks(type, rotation) {
+export const getBlocks = (type, rotation) => {
   const shape = getRotatedShape(type, rotation);
   const blocks = [];
   for (let y = 0; y < shape.length; y++)

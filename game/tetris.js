@@ -8,18 +8,15 @@ import { fillGarbage } from './helpers.js';
 
 const CELL_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-function encodeCell(id) {
-  if (id === null) return ' ';
-  return CELL_CHARS[id] ?? '?';
-}
+const encodeCell = (id) => id === null ? ' ' : (CELL_CHARS[id] ?? '?')
 
-function decodeCell(ch) {
+const decodeCell = (ch) => {
   if (ch === ' ') return null;
   const i = CELL_CHARS.indexOf(ch);
   return i >= 0 ? i : null;
 }
 
-export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mode = 'play', recording, gravityMode = 'normal', cascadeGravity, visualHeight = 20, gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0 } = {}) {
+export const createGame = (canvas, { boardWidth = 10, boardHeight = 24, seed, mode = 'play', recording, gravityMode = 'normal', cascadeGravity, visualHeight = 20, gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0 } = {}) => {
   const resolvedGravityMode = gravityMode !== 'normal' ? gravityMode : (cascadeGravity ? 'cascade' : 'normal');
   const rng = seedrandom(seed, { state: true });
   const world = new World();
@@ -63,7 +60,7 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mo
     world.addSystem(new RenderSystem(canvas));
   }
 
-  function restart(newSeed) {
+  const restart = (newSeed) => {
     for (const id of world.query('ActivePiece')) world.destroyEntity(id);
     const board = world.getComponent(boardId, 'Board');
     for (let y = 0; y < board.grid.length; y++) board.grid[y].fill(null);
@@ -87,13 +84,13 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mo
     }
   }
 
-  world.restart = function(newSeed) {
+  world.restart = (newSeed) => {
     restart(newSeed);
     if (recorderSystem) recorderSystem.reset();
   };
   world.boardId = boardId;
 
-  world.getRecording = function () {
+  world.getRecording = () => {
     if (!recorderSystem) return null;
     const rec = recorderSystem.getRecording(world.seed);
     const board = world.getComponent(boardId, 'Board');
@@ -109,13 +106,13 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mo
     return rec;
   };
 
-  world.replayTick = function () {
+  world.replayTick = () => {
     if (!replaySystem || replaySystem.done) return false;
     world.update();
     return !replaySystem.done;
   };
 
-  world.exportState = function () {
+  world.exportState = () => {
     const snapshot = {
       seed: world.seed,
       nextId: world.nextId,
@@ -151,7 +148,7 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mo
     return snapshot;
   };
 
-  world.loadState = function (snapshot) {
+  world.loadState = (snapshot) => {
     world.seed = snapshot.seed;
     world.nextId = snapshot.nextId;
     world.entities.clear();

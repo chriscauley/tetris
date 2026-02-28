@@ -1,6 +1,6 @@
 import { PIECE_TYPES, G, getBlocks } from './pieces.js';
 
-export function collides(board, type, rotation, px, py) {
+export const collides = (board, type, rotation, px, py) => {
   const blocks = getBlocks(type, rotation);
   for (const b of blocks) {
     const gx = px + b.x;
@@ -12,11 +12,9 @@ export function collides(board, type, rotation, px, py) {
   return false;
 }
 
-export function canMove(board, type, rotation, px, py) {
-  return !collides(board, type, rotation, px, py);
-}
+export const canMove = (board, type, rotation, px, py) => !collides(board, type, rotation, px, py)
 
-export function shuffledBag(rng) {
+export const shuffledBag = (rng) => {
   const bag = [...PIECE_TYPES];
   for (let i = bag.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
@@ -25,11 +23,9 @@ export function shuffledBag(rng) {
   return bag;
 }
 
-export function getDropInterval(level) {
-  return Math.max(3, 63 - (level - 1) * 5);
-}
+export const getDropInterval = (level) => Math.max(3, 63 - (level - 1) * 5)
 
-export function fillGarbage(board, pieceTable, rng, garbageHeight, sparsity = 0) {
+export const fillGarbage = (board, pieceTable, rng, garbageHeight, sparsity = 0) => {
   const totalRows = board.grid.length;
   for (let i = 0; i < garbageHeight; i++) {
     const y = totalRows - 1 - i;

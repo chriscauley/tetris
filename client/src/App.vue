@@ -62,6 +62,22 @@ const linesDisplay = computed(() => {
   return '' + game.lines
 })
 
+const scoreRows = computed(() => [
+  ['SCORE', game.score],
+  ['LINES', linesDisplay.value],
+  ['LEVEL', game.level],
+])
+
+const controlRows = [
+  ['\u2190\u2192', 'Move'],
+  ['\u2191 X', 'Rotate CW'],
+  ['Z', 'Rotate CCW'],
+  ['\u2193', 'Soft Drop'],
+  ['Space', 'Hard Drop'],
+  ['C', 'Hold'],
+  ['P', 'Pause'],
+]
+
 const gameAreaStyle = computed(() => ({
   '--cell-size': game.cellSize + 'px',
   '--board-x': game.boardX + 'px',
@@ -321,18 +337,10 @@ onMounted(() => {
   <div v-if="game.cellSize > 0" class="side-panel --left">
     <div class="label">HOLD</div>
     <table class="score-block">
-      <tr><td>SCORE</td><td>{{ game.score }}</td></tr>
-      <tr><td>LINES</td><td>{{ linesDisplay }}</td></tr>
-      <tr><td>LEVEL</td><td>{{ game.level }}</td></tr>
+      <tr v-for="[label, value] in scoreRows" :key="label"><td>{{ label }}</td><td>{{ value }}</td></tr>
     </table>
     <table class="controls-help">
-      <tr><td>&#x2190;&#x2192;</td><td>Move</td></tr>
-      <tr><td>&#x2191; X</td><td>Rotate CW</td></tr>
-      <tr><td>Z</td><td>Rotate CCW</td></tr>
-      <tr><td>&#x2193;</td><td>Soft Drop</td></tr>
-      <tr><td>Space</td><td>Hard Drop</td></tr>
-      <tr><td>C</td><td>Hold</td></tr>
-      <tr><td>P</td><td>Pause</td></tr>
+      <tr v-for="[key, desc] in controlRows" :key><td>{{ key }}</td><td>{{ desc }}</td></tr>
     </table>
   </div>
 

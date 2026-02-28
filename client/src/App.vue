@@ -1,7 +1,9 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { createGame } from '@game/tetris.js'
 import UnrestDialog from './components/UnrestDialog.vue'
+import NewGameForm from './components/NewGameForm.vue'
+import DebugForm from './components/DebugForm.vue'
 
 const TICK_MS = 16
 
@@ -12,13 +14,6 @@ const showReplayDialog = ref(false)
 const showDebugDialog = ref(false)
 const stateJson = ref('')
 const replayJson = ref('')
-const seedInput = ref('')
-const linesInput = ref(20)
-const gravityModeInput = ref('normal')
-const gameModeInput = ref('a')
-const startLevelInput = ref(1)
-const garbageHeightInput = ref(0)
-const sparsityInput = ref(0)
 let world = null
 const paused = ref(false)
 let gameAnimId = null
@@ -174,28 +169,24 @@ function startGame(seed, boardHeight = 24, gravityMode = 'normal', gameMode = 'a
   }
 }
 
+const newGameDefaults = ref({})
+
 function onNewGame() {
-  seedInput.value = ''
-  linesInput.value = currentBoardHeight
-  gravityModeInput.value = currentGravityMode
-  gameModeInput.value = currentGameMode
-  startLevelInput.value = currentStartLevel
-  garbageHeightInput.value = currentGarbageHeight
-  sparsityInput.value = currentSparsity
+  newGameDefaults.value = {
+    boardHeight: currentBoardHeight,
+    gravityMode: currentGravityMode,
+    gameMode: currentGameMode,
+    startLevel: currentStartLevel,
+    garbageHeight: currentGarbageHeight,
+    sparsity: currentSparsity,
+  }
   showNewGameDialog.value = true
 }
 
-function onNewGameSubmit() {
-  const seed = seedInput.value.trim() || undefined
-  const boardHeight = Math.max(15, Math.min(50, Math.floor(Number(linesInput.value) || 24)))
-  const gravityMode = gravityModeInput.value
-  const gameMode = gameModeInput.value
-  const startLevel = Math.max(1, Math.min(10, Math.floor(Number(startLevelInput.value) || 1)))
-  const garbageHeight = gameMode === 'b' ? Math.max(0, Math.min(5, Math.floor(Number(garbageHeightInput.value) || 0))) : 0
-  const sparsity = gameMode === 'b' ? Math.max(0, Math.floor(Number(sparsityInput.value) || 0)) : 0
+function onNewGameSubmit(data) {
   showNewGameDialog.value = false
-  localStorage.setItem('tetris-settings', JSON.stringify({ seed, boardHeight, gravityMode, gameMode, startLevel, garbageHeight, sparsity }))
-  startGame(seed, boardHeight, gravityMode, gameMode, startLevel, garbageHeight, sparsity)
+  localStorage.setItem('tetris-settings', JSON.stringify(data))
+  startGame(data.seed, data.boardHeight, data.gravityMode, data.gameMode, data.startLevel, data.garbageHeight, data.sparsity)
 }
 
 function onNewGameCancel() {
@@ -317,11 +308,11 @@ async function loadReplay() {
   }
 }
 
-function syncDebugSettings() {
+watch(animSlowdown, () => {
   if (!world) return
   if (!world.debug) world.debug = {}
   world.debug.animSlowdown = animSlowdown.value
-}
+})
 
 function openDebugSettings() {
   showDebugDialog.value = true
@@ -448,83 +439,10 @@ onMounted(() => {
   </UnrestDialog>
 
   <UnrestDialog :open="showDebugDialog" title="Debug Settings" @close="closeDebugSettings">
-    <FormKit
-      type="range"
-      v-model="animSlowdown"
-      label="Anim Slowdown"
-      :help="`${animSlowdown}x`"
-      min="1"
-      max="10"
-      step="1"
-      @input="syncDebugSettings"
-    />
-    <template #actions>
-      <button class="btn -secondary" type="button" @click="closeDebugSettings">Close</button>
-    </template>
+    <DebugForm v-model:animSlowdown="animSlowdown" @close="closeDebugSettings" />
   </UnrestDialog>
 
   <UnrestDialog :open="showNewGameDialog" title="New Game" @close="onNewGameCancel">
-    <FormKit type="form" @submit="onNewGameSubmit" :actions="false">
-      <FormKit
-        type="select"
-        v-model="gameModeInput"
-        label="Mode"
-        autofocus
-        :options="[
-          { value: 'a', label: 'A-Type (Marathon)' },
-          { value: 'b', label: 'B-Type (25 Lines)' },
-        ]"
-      />
-      <FormKit
-        type="number"
-        v-model="startLevelInput"
-        label="Starting Level"
-        min="1"
-        max="10"
-      />
-      <FormKit
-        v-if="gameModeInput === 'b'"
-        type="number"
-        v-model="garbageHeightInput"
-        label="Garbage Height"
-        min="0"
-        max="5"
-      />
-      <FormKit
-        v-if="gameModeInput === 'b'"
-        type="number"
-        v-model="sparsityInput"
-        label="Sparsity"
-        min="0"
-        max="5"
-      />
-      <FormKit
-        type="number"
-        v-model="linesInput"
-        label="Board Height"
-        min="15"
-        max="50"
-      />
-      <FormKit
-        type="text"
-        v-model="seedInput"
-        label="Seed"
-        placeholder="Leave blank for random"
-      />
-      <FormKit
-        type="select"
-        v-model="gravityModeInput"
-        label="Gravity"
-        :options="[
-          { value: 'normal', label: 'Normal' },
-          { value: 'cascade', label: 'Cascade' },
-          { value: 'sticky', label: 'Sticky' },
-        ]"
-      />
-    </FormKit>
-    <template #actions>
-      <button class="btn -secondary" type="button" @click="onNewGameCancel">Cancel</button>
-      <button class="btn -primary" @click="onNewGameSubmit">Play</button>
-    </template>
+    <NewGameForm :defaults="newGameDefaults" @submit="onNewGameSubmit" @cancel="onNewGameCancel" />
   </UnrestDialog>
 </template>

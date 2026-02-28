@@ -14,7 +14,7 @@ defineEmits(['close'])
     <div class="modal__content" :class="contentClass">
       <h2 v-if="title">{{ title }}</h2>
       <slot />
-      <div class="modal__actions">
+      <div class="modal__actions" v-if="$slots.actions">
         <slot name="actions" />
       </div>
     </div>

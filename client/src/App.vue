@@ -7,7 +7,6 @@ import DebugForm from './components/DebugForm.vue'
 
 // Constants
 const TICK_MS = 16
-const BOARD_WIDTH = 10
 const VISUAL_HEIGHT = 20
 
 // Game engine (non-reactive)
@@ -63,32 +62,10 @@ const linesDisplay = computed(() => {
   return '' + game.lines
 })
 
-const fontSize = computed(() => Math.max(11, game.cellSize * 0.55) + 'px')
-const helpFontSize = computed(() => Math.max(9, game.cellSize * 0.35) + 'px')
-const gameOverFontSize = computed(() => game.cellSize * 1.1 + 'px')
-const gameOverSubFontSize = computed(() => game.cellSize * 0.55 + 'px')
-
-const leftPanelStyle = computed(() => ({
-  position: 'fixed',
-  left: game.boardX - game.cellSize * 5.5 + 'px',
-  top: game.boardY + 'px',
-  height: VISUAL_HEIGHT * game.cellSize + 'px',
-  fontFamily: 'monospace',
-}))
-
-const rightPanelStyle = computed(() => ({
-  position: 'fixed',
-  left: game.boardX + BOARD_WIDTH * game.cellSize + game.cellSize * 1.5 + 'px',
-  top: game.boardY + 'px',
-  fontFamily: 'monospace',
-}))
-
-const gameOverStyle = computed(() => ({
-  position: 'fixed',
-  left: game.boardX + 'px',
-  top: game.boardY + 'px',
-  width: BOARD_WIDTH * game.cellSize + 'px',
-  height: VISUAL_HEIGHT * game.cellSize + 'px',
+const gameAreaStyle = computed(() => ({
+  '--cell-size': game.cellSize + 'px',
+  '--board-x': game.boardX + 'px',
+  '--board-y': game.boardY + 'px',
 }))
 
 // Engine sync
@@ -337,90 +314,50 @@ onMounted(() => {
 </script>
 
 <template>
+  <div class="game-area" :style="gameAreaStyle">
   <canvas ref="canvas"></canvas>
 
   <!-- Left panel: HOLD, score info, controls -->
-  <div v-if="game.cellSize > 0" class="side-panel" :style="leftPanelStyle">
-    <div class="label" :style="{ fontSize }">HOLD</div>
-    <div class="score-block" :style="{ marginTop: game.cellSize * 4.8 + 'px' }">
-      <div class="label" :style="{ fontSize }">SCORE</div>
-      <div class="value" :style="{ fontSize, marginTop: fontSize }">
-        {{ game.score }}
-      </div>
-      <div class="label" :style="{ fontSize, marginTop: fontSize }">LINES</div>
-      <div class="value" :style="{ fontSize, marginTop: fontSize }">
-        {{ linesDisplay }}
-      </div>
-      <div class="label" :style="{ fontSize, marginTop: fontSize }">LEVEL</div>
-      <div class="value" :style="{ fontSize, marginTop: fontSize }">
-        {{ game.level }}
-      </div>
-    </div>
-    <table
-      class="controls-help"
-      :style="{
-        fontSize: helpFontSize,
-        position: 'absolute',
-        bottom: 0,
-      }"
-    >
-      <tr>
-        <td>&#x2190;&#x2192;</td>
-        <td>Move</td>
-      </tr>
-      <tr>
-        <td>&#x2191; X</td>
-        <td>Rotate CW</td>
-      </tr>
-      <tr>
-        <td>Z</td>
-        <td>Rotate CCW</td>
-      </tr>
-      <tr>
-        <td>&#x2193;</td>
-        <td>Soft Drop</td>
-      </tr>
-      <tr>
-        <td>Space</td>
-        <td>Hard Drop</td>
-      </tr>
-      <tr>
-        <td>C</td>
-        <td>Hold</td>
-      </tr>
-      <tr>
-        <td>P</td>
-        <td>Pause</td>
-      </tr>
+  <div v-if="game.cellSize > 0" class="side-panel --left">
+    <div class="label">HOLD</div>
+    <table class="score-block">
+      <tr><td>SCORE</td><td>{{ game.score }}</td></tr>
+      <tr><td>LINES</td><td>{{ linesDisplay }}</td></tr>
+      <tr><td>LEVEL</td><td>{{ game.level }}</td></tr>
+    </table>
+    <table class="controls-help">
+      <tr><td>&#x2190;&#x2192;</td><td>Move</td></tr>
+      <tr><td>&#x2191; X</td><td>Rotate CW</td></tr>
+      <tr><td>Z</td><td>Rotate CCW</td></tr>
+      <tr><td>&#x2193;</td><td>Soft Drop</td></tr>
+      <tr><td>Space</td><td>Hard Drop</td></tr>
+      <tr><td>C</td><td>Hold</td></tr>
+      <tr><td>P</td><td>Pause</td></tr>
     </table>
   </div>
 
   <!-- Right panel: NEXT -->
-  <div v-if="game.cellSize > 0" class="side-panel" :style="rightPanelStyle">
-    <div class="label" :style="{ fontSize }">NEXT</div>
+  <div v-if="game.cellSize > 0" class="side-panel --right">
+    <div class="label">NEXT</div>
   </div>
 
   <!-- Game over overlay -->
-  <div v-if="game.phase === 'gameover' && game.cellSize > 0" class="game-over-overlay" :style="gameOverStyle">
-    <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">GAME OVER</div>
-    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">Press R to restart</div>
+  <div v-if="game.phase === 'gameover' && game.cellSize > 0" class="game-over-overlay">
+    <div class="game-over-text">GAME OVER</div>
+    <div class="game-over-sub">Press R to restart</div>
   </div>
 
   <!-- Victory overlay -->
-  <div v-if="game.phase === 'victory' && game.cellSize > 0" class="game-over-overlay" :style="gameOverStyle">
-    <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">SUCCESS!</div>
-    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">25 Lines Cleared!</div>
-    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">Press R to play again</div>
+  <div v-if="game.phase === 'victory' && game.cellSize > 0" class="game-over-overlay">
+    <div class="game-over-text">SUCCESS!</div>
+    <div class="game-over-sub">25 Lines Cleared!</div>
+    <div class="game-over-sub">Press R to play again</div>
   </div>
 
   <!-- Pause overlay -->
-  <div
-    v-if="paused && game.phase !== 'gameover' && game.phase !== 'victory' && game.cellSize > 0"
-    class="game-over-overlay"
-    :style="gameOverStyle"
-  >
-    <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">PAUSED</div>
-    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">Press P to resume</div>
+  <div v-if="paused && game.phase !== 'gameover' && game.phase !== 'victory' && game.cellSize > 0" class="game-over-overlay">
+    <div class="game-over-text">PAUSED</div>
+    <div class="game-over-sub">Press P to resume</div>
   </div>
 
   <!-- Debug panel -->
@@ -480,4 +417,5 @@ onMounted(() => {
   <UnrestDialog :open="dialogs.newGame" title="New Game" @close="onNewGameCancel">
     <NewGameForm :defaults="newGameDefaults" @submit="onNewGameSubmit" @cancel="onNewGameCancel" />
   </UnrestDialog>
+  </div>
 </template>

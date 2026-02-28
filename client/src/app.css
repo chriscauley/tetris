@@ -17,8 +17,31 @@ canvas {
   @apply block;
 }
 
+.game-area {
+  --board-w: calc(10 * var(--cell-size));
+  --board-h: calc(20 * var(--cell-size));
+  --font-size: max(11px, calc(var(--cell-size) * 0.55));
+  --help-font-size: max(9px, calc(var(--cell-size) * 0.35));
+  --gameover-font-size: calc(var(--cell-size) * 1.1);
+  --gameover-sub-font-size: calc(var(--cell-size) * 0.55);
+}
+
 .side-panel {
   @apply select-none whitespace-pre;
+  position: fixed;
+  font-family: monospace;
+  font-size: var(--font-size);
+}
+
+.side-panel.--left {
+  left: calc(var(--board-x) - var(--cell-size) * 5.5);
+  top: var(--board-y);
+  height: var(--board-h);
+}
+
+.side-panel.--right {
+  left: calc(var(--board-x) + var(--board-w) + var(--cell-size) * 1.5);
+  top: var(--board-y);
 }
 
 .side-panel .label {
@@ -29,8 +52,29 @@ canvas {
   @apply font-bold text-white;
 }
 
+.score-block {
+  margin-top: calc(var(--cell-size) * 4.8);
+  border-collapse: collapse;
+}
+
+.score-block td {
+  padding-top: calc(var(--font-size) / 2);
+}
+
+.score-block td:first-child {
+  @apply font-bold text-neutral-400;
+}
+
+.score-block td:last-child {
+  @apply font-bold text-white;
+  text-align: right;
+}
+
 .controls-help {
   @apply border-collapse text-neutral-600;
+  font-size: var(--help-font-size);
+  position: absolute;
+  bottom: 0;
 }
 
 .controls-help td {
@@ -47,14 +91,20 @@ canvas {
 
 .game-over-overlay {
   @apply fixed flex flex-col items-center justify-center z-5 bg-black/75;
+  left: var(--board-x);
+  top: var(--board-y);
+  width: var(--board-w);
+  height: var(--board-h);
 }
 
 .game-over-text {
   @apply text-white font-mono font-bold;
+  font-size: var(--gameover-font-size);
 }
 
 .game-over-sub {
   @apply text-white font-mono mt-4;
+  font-size: var(--gameover-sub-font-size);
 }
 
 .btn-row {

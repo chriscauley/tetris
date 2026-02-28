@@ -20,18 +20,30 @@ const form = reactive({
 function onSubmit() {
   emit('submit', {
     seed: form.seed.trim() || undefined,
-    boardHeight: Math.max(15, Math.min(50, Math.floor(Number(form.boardHeight) || 24))),
+    boardHeight: Math.max(
+      15,
+      Math.min(50, Math.floor(Number(form.boardHeight) || 24)),
+    ),
     gravityMode: form.gravityMode,
     gameMode: form.gameMode,
-    startLevel: Math.max(1, Math.min(10, Math.floor(Number(form.startLevel) || 1))),
-    garbageHeight: form.gameMode === 'b' ? Math.max(0, Math.min(5, Math.floor(Number(form.garbageHeight) || 0))) : 0,
-    sparsity: form.gameMode === 'b' ? Math.max(0, Math.floor(Number(form.sparsity) || 0)) : 0,
+    startLevel: Math.max(
+      1,
+      Math.min(10, Math.floor(Number(form.startLevel) || 1)),
+    ),
+    garbageHeight:
+      form.gameMode === 'b'
+        ? Math.max(0, Math.min(5, Math.floor(Number(form.garbageHeight) || 0)))
+        : 0,
+    sparsity:
+      form.gameMode === 'b'
+        ? Math.max(0, Math.floor(Number(form.sparsity) || 0))
+        : 0,
   })
 }
 </script>
 
 <template>
-  <FormKit type="form" v-model="form" @submit="onSubmit" :actions="false">
+  <FormKit v-model="form" type="form" :actions="false" @submit="onSubmit">
     <FormKit
       type="select"
       name="gameMode"
@@ -90,7 +102,9 @@ function onSubmit() {
     />
   </FormKit>
   <div class="modal__actions">
-    <button class="btn -secondary" type="button" @click="$emit('cancel')">Cancel</button>
+    <button class="btn -secondary" type="button" @click="$emit('cancel')">
+      Cancel
+    </button>
     <button class="btn -primary" @click="onSubmit">Play</button>
   </div>
 </template>

@@ -65,20 +65,20 @@ const linesDisplay = computed(() => {
 
 const fontSize = computed(() => Math.max(11, game.cellSize * 0.55) + 'px')
 const helpFontSize = computed(() => Math.max(9, game.cellSize * 0.35) + 'px')
-const gameOverFontSize = computed(() => (game.cellSize * 1.1) + 'px')
-const gameOverSubFontSize = computed(() => (game.cellSize * 0.55) + 'px')
+const gameOverFontSize = computed(() => game.cellSize * 1.1 + 'px')
+const gameOverSubFontSize = computed(() => game.cellSize * 0.55 + 'px')
 
 const leftPanelStyle = computed(() => ({
   position: 'fixed',
-  left: (game.boardX - game.cellSize * 5.5) + 'px',
+  left: game.boardX - game.cellSize * 5.5 + 'px',
   top: game.boardY + 'px',
-  height: (VISUAL_HEIGHT * game.cellSize) + 'px',
+  height: VISUAL_HEIGHT * game.cellSize + 'px',
   fontFamily: 'monospace',
 }))
 
 const rightPanelStyle = computed(() => ({
   position: 'fixed',
-  left: (game.boardX + BOARD_WIDTH * game.cellSize + game.cellSize * 1.5) + 'px',
+  left: game.boardX + BOARD_WIDTH * game.cellSize + game.cellSize * 1.5 + 'px',
   top: game.boardY + 'px',
   fontFamily: 'monospace',
 }))
@@ -87,8 +87,8 @@ const gameOverStyle = computed(() => ({
   position: 'fixed',
   left: game.boardX + 'px',
   top: game.boardY + 'px',
-  width: (BOARD_WIDTH * game.cellSize) + 'px',
-  height: (VISUAL_HEIGHT * game.cellSize) + 'px',
+  width: BOARD_WIDTH * game.cellSize + 'px',
+  height: VISUAL_HEIGHT * game.cellSize + 'px',
 }))
 
 // Engine sync
@@ -158,9 +158,19 @@ function startGameLoop() {
   gameAnimId = requestAnimationFrame(loop)
 }
 
-function startGame(seed, boardHeight = 24, gravityMode = 'normal', gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0) {
+function startGame(
+  seed,
+  boardHeight = 24,
+  gravityMode = 'normal',
+  gameMode = 'a',
+  startLevel = 1,
+  garbageHeight = 0,
+  sparsity = 0,
+) {
   stopReplay()
-  const sameConfig = world && isPlayWorld &&
+  const sameConfig =
+    world &&
+    isPlayWorld &&
     boardHeight === currentSettings.boardHeight &&
     gravityMode === currentSettings.gravityMode &&
     gameMode === currentSettings.gameMode &&
@@ -170,8 +180,24 @@ function startGame(seed, boardHeight = 24, gravityMode = 'normal', gameMode = 'a
   if (sameConfig) {
     world.restart(seed)
   } else {
-    world = createGame(canvas.value, { seed, boardHeight, gravityMode, visualHeight: VISUAL_HEIGHT, gameMode, startLevel, garbageHeight, sparsity })
-    Object.assign(currentSettings, { boardHeight, gravityMode, gameMode, startLevel, garbageHeight, sparsity })
+    world = createGame(canvas.value, {
+      seed,
+      boardHeight,
+      gravityMode,
+      visualHeight: VISUAL_HEIGHT,
+      gameMode,
+      startLevel,
+      garbageHeight,
+      sparsity,
+    })
+    Object.assign(currentSettings, {
+      boardHeight,
+      gravityMode,
+      gameMode,
+      startLevel,
+      garbageHeight,
+      sparsity,
+    })
     isPlayWorld = true
     startGameLoop()
   }
@@ -186,7 +212,15 @@ function onNewGame() {
 function onNewGameSubmit(data) {
   dialogs.newGame = false
   localStorage.setItem('tetris-settings', JSON.stringify(data))
-  startGame(data.seed, data.boardHeight, data.gravityMode, data.gameMode, data.startLevel, data.garbageHeight, data.sparsity)
+  startGame(
+    data.seed,
+    data.boardHeight,
+    data.gravityMode,
+    data.gameMode,
+    data.startLevel,
+    data.garbageHeight,
+    data.sparsity,
+  )
 }
 
 function onNewGameCancel() {
@@ -218,10 +252,13 @@ function getFullRecording() {
   const rec = world.getRecording()
   if (!rec) return null
   const board = world.getComponent(world.boardId, 'Board')
-  const CELL_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  const CELL_CHARS =
+    '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
   const grid = board.grid
-    .filter(row => row.some(cell => cell !== null))
-    .map(row => row.map(c => c === null ? ' ' : (CELL_CHARS[c] ?? '?')).join(''))
+    .filter((row) => row.some((cell) => cell !== null))
+    .map((row) =>
+      row.map((c) => (c === null ? ' ' : (CELL_CHARS[c] ?? '?'))).join(''),
+    )
   rec.expectedGrid = grid
   return rec
 }
@@ -260,7 +297,9 @@ function startReplay(recording) {
   world = createGame(canvas.value, {
     seed: recording.seed,
     boardHeight: recording.boardHeight,
-    gravityMode: recording.gravityMode || (recording.cascadeGravity ? 'cascade' : 'normal'),
+    gravityMode:
+      recording.gravityMode ||
+      (recording.cascadeGravity ? 'cascade' : 'normal'),
     visualHeight: VISUAL_HEIGHT,
     mode: 'replay',
     recording,
@@ -327,7 +366,7 @@ function closeDebugSettings() {
 
 // Init
 onMounted(() => {
-  document.addEventListener('keydown', e => {
+  document.addEventListener('keydown', (e) => {
     if (e.key.toLowerCase() === 'p') {
       if (replaying.value) return
       if (!world) return
@@ -337,20 +376,35 @@ onMounted(() => {
     }
   })
 
-  let seed, boardHeight, gravityMode, gameMode, startLevel, garbageHeight, sparsity
+  let seed,
+    boardHeight,
+    gravityMode,
+    gameMode,
+    startLevel,
+    garbageHeight,
+    sparsity
   try {
     const saved = JSON.parse(localStorage.getItem('tetris-settings'))
     if (saved) {
       seed = saved.seed
       boardHeight = saved.boardHeight
-      gravityMode = saved.gravityMode || (saved.cascadeGravity ? 'cascade' : 'normal')
+      gravityMode =
+        saved.gravityMode || (saved.cascadeGravity ? 'cascade' : 'normal')
       gameMode = saved.gameMode
       startLevel = saved.startLevel
       garbageHeight = saved.garbageHeight
       sparsity = saved.sparsity
     }
   } catch {}
-  startGame(seed, boardHeight, gravityMode, gameMode, startLevel, garbageHeight, sparsity)
+  startGame(
+    seed,
+    boardHeight,
+    gravityMode,
+    gameMode,
+    startLevel,
+    garbageHeight,
+    sparsity,
+  )
 })
 </script>
 
@@ -358,63 +412,139 @@ onMounted(() => {
   <canvas ref="canvas"></canvas>
 
   <!-- Left panel: HOLD, score info, controls -->
-  <div class="side-panel" :style="leftPanelStyle" v-if="game.cellSize > 0">
+  <div v-if="game.cellSize > 0" class="side-panel" :style="leftPanelStyle">
     <div class="label" :style="{ fontSize }">HOLD</div>
     <div class="score-block" :style="{ marginTop: game.cellSize * 4.8 + 'px' }">
       <div class="label" :style="{ fontSize }">SCORE</div>
-      <div class="value" :style="{ fontSize, marginTop: fontSize }">{{ game.score }}</div>
+      <div class="value" :style="{ fontSize, marginTop: fontSize }">
+        {{ game.score }}
+      </div>
       <div class="label" :style="{ fontSize, marginTop: fontSize }">LINES</div>
-      <div class="value" :style="{ fontSize, marginTop: fontSize }">{{ linesDisplay }}</div>
+      <div class="value" :style="{ fontSize, marginTop: fontSize }">
+        {{ linesDisplay }}
+      </div>
       <div class="label" :style="{ fontSize, marginTop: fontSize }">LEVEL</div>
-      <div class="value" :style="{ fontSize, marginTop: fontSize }">{{ game.level }}</div>
+      <div class="value" :style="{ fontSize, marginTop: fontSize }">
+        {{ game.level }}
+      </div>
     </div>
-    <table class="controls-help" :style="{
-      fontSize: helpFontSize,
-      position: 'absolute',
-      bottom: 0,
-    }">
-      <tr><td>&#x2190;&#x2192;</td><td>Move</td></tr>
-      <tr><td>&#x2191; X</td><td>Rotate CW</td></tr>
-      <tr><td>Z</td><td>Rotate CCW</td></tr>
-      <tr><td>&#x2193;</td><td>Soft Drop</td></tr>
-      <tr><td>Space</td><td>Hard Drop</td></tr>
-      <tr><td>C</td><td>Hold</td></tr>
-      <tr><td>P</td><td>Pause</td></tr>
+    <table
+      class="controls-help"
+      :style="{
+        fontSize: helpFontSize,
+        position: 'absolute',
+        bottom: 0,
+      }"
+    >
+      <tr>
+        <td>&#x2190;&#x2192;</td>
+        <td>Move</td>
+      </tr>
+      <tr>
+        <td>&#x2191; X</td>
+        <td>Rotate CW</td>
+      </tr>
+      <tr>
+        <td>Z</td>
+        <td>Rotate CCW</td>
+      </tr>
+      <tr>
+        <td>&#x2193;</td>
+        <td>Soft Drop</td>
+      </tr>
+      <tr>
+        <td>Space</td>
+        <td>Hard Drop</td>
+      </tr>
+      <tr>
+        <td>C</td>
+        <td>Hold</td>
+      </tr>
+      <tr>
+        <td>P</td>
+        <td>Pause</td>
+      </tr>
     </table>
   </div>
 
   <!-- Right panel: NEXT -->
-  <div class="side-panel" :style="rightPanelStyle" v-if="game.cellSize > 0">
+  <div v-if="game.cellSize > 0" class="side-panel" :style="rightPanelStyle">
     <div class="label" :style="{ fontSize }">NEXT</div>
   </div>
 
   <!-- Game over overlay -->
-  <div class="game-over-overlay" :style="gameOverStyle" v-if="game.phase === 'gameover' && game.cellSize > 0">
-    <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">GAME OVER</div>
-    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">Press R to restart</div>
+  <div
+    v-if="game.phase === 'gameover' && game.cellSize > 0"
+    class="game-over-overlay"
+    :style="gameOverStyle"
+  >
+    <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">
+      GAME OVER
+    </div>
+    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">
+      Press R to restart
+    </div>
   </div>
 
   <!-- Victory overlay -->
-  <div class="game-over-overlay" :style="gameOverStyle" v-if="game.phase === 'victory' && game.cellSize > 0">
-    <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">SUCCESS!</div>
-    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">25 Lines Cleared!</div>
-    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">Press R to play again</div>
+  <div
+    v-if="game.phase === 'victory' && game.cellSize > 0"
+    class="game-over-overlay"
+    :style="gameOverStyle"
+  >
+    <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">
+      SUCCESS!
+    </div>
+    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">
+      25 Lines Cleared!
+    </div>
+    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">
+      Press R to play again
+    </div>
   </div>
 
   <!-- Pause overlay -->
-  <div class="game-over-overlay" :style="gameOverStyle" v-if="paused && game.phase !== 'gameover' && game.phase !== 'victory' && game.cellSize > 0">
-    <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">PAUSED</div>
-    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">Press P to resume</div>
+  <div
+    v-if="
+      paused &&
+      game.phase !== 'gameover' &&
+      game.phase !== 'victory' &&
+      game.cellSize > 0
+    "
+    class="game-over-overlay"
+    :style="gameOverStyle"
+  >
+    <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">
+      PAUSED
+    </div>
+    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">
+      Press P to resume
+    </div>
   </div>
 
   <!-- Debug panel -->
   <div class="debug-panel">
     <table>
-      <tr><td class="debug-label">piece</td><td>{{ game.activePieceId ?? '—' }}</td></tr>
-      <tr><td class="debug-label">highest</td><td>{{ game.highestBlock }}</td></tr>
-      <tr><td class="debug-label">seed</td><td>{{ game.seed ?? '—' }}</td></tr>
-      <tr><td class="debug-label">height</td><td>{{ game.boardHeight }}</td></tr>
-      <tr><td class="debug-label">gravity</td><td>{{ game.gravityMode }}</td></tr>
+      <tr>
+        <td class="debug-label">piece</td>
+        <td>{{ game.activePieceId ?? '—' }}</td>
+      </tr>
+      <tr>
+        <td class="debug-label">highest</td>
+        <td>{{ game.highestBlock }}</td>
+      </tr>
+      <tr>
+        <td class="debug-label">seed</td>
+        <td>{{ game.seed ?? '—' }}</td>
+      </tr>
+      <tr>
+        <td class="debug-label">height</td>
+        <td>{{ game.boardHeight }}</td>
+      </tr>
+      <tr>
+        <td class="debug-label">gravity</td>
+        <td>{{ game.gravityMode }}</td>
+      </tr>
     </table>
   </div>
 
@@ -428,25 +558,51 @@ onMounted(() => {
     <button class="btn -secondary" @click="openDebugSettings">Debug</button>
   </div>
 
-  <UnrestDialog :open="dialogs.state" title="Game State" content-class="modal__content--wide" @close="closeState">
+  <UnrestDialog
+    :open="dialogs.state"
+    title="Game State"
+    content-class="modal__content--wide"
+    @close="closeState"
+  >
     <pre class="state-pre">{{ stateJson }}</pre>
     <template #actions>
-      <button class="btn -secondary" type="button" @click="closeState">Close</button>
+      <button class="btn -secondary" type="button" @click="closeState">
+        Close
+      </button>
     </template>
   </UnrestDialog>
 
-  <UnrestDialog :open="dialogs.replay" title="Replay Data" content-class="modal__content--wide" @close="closeReplay">
+  <UnrestDialog
+    :open="dialogs.replay"
+    title="Replay Data"
+    content-class="modal__content--wide"
+    @close="closeReplay"
+  >
     <pre class="state-pre">{{ replayJson }}</pre>
     <template #actions>
-      <button class="btn -secondary" type="button" @click="closeReplay">Close</button>
+      <button class="btn -secondary" type="button" @click="closeReplay">
+        Close
+      </button>
     </template>
   </UnrestDialog>
 
-  <UnrestDialog :open="dialogs.debug" title="Debug Settings" @close="closeDebugSettings">
-    <DebugForm v-model:animSlowdown="animSlowdown" @close="closeDebugSettings" />
+  <UnrestDialog
+    :open="dialogs.debug"
+    title="Debug Settings"
+    @close="closeDebugSettings"
+  >
+    <DebugForm v-model="animSlowdown" @close="closeDebugSettings" />
   </UnrestDialog>
 
-  <UnrestDialog :open="dialogs.newGame" title="New Game" @close="onNewGameCancel">
-    <NewGameForm :defaults="newGameDefaults" @submit="onNewGameSubmit" @cancel="onNewGameCancel" />
+  <UnrestDialog
+    :open="dialogs.newGame"
+    title="New Game"
+    @close="onNewGameCancel"
+  >
+    <NewGameForm
+      :defaults="newGameDefaults"
+      @submit="onNewGameSubmit"
+      @cancel="onNewGameCancel"
+    />
   </UnrestDialog>
 </template>

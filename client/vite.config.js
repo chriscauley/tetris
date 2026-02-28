@@ -8,11 +8,7 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   base: '/tetris/',
-  plugins: [
-    vue(),
-    vueDevTools(),
-    tailwindcss(),
-  ],
+  plugins: [vue(), vueDevTools(), tailwindcss()],
   server: {
     port: 5179,
   },
@@ -20,7 +16,9 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@game': fileURLToPath(new URL('../game', import.meta.url)),
-      'seedrandom': fileURLToPath(new URL('./node_modules/seedrandom', import.meta.url)),
+      seedrandom: fileURLToPath(
+        new URL('./node_modules/seedrandom', import.meta.url),
+      ),
     },
   },
   test: {

@@ -6,6 +6,6 @@
     }
   </style>
   <!-- White circle behind the eye -->
-  <circle cx="18.5" cy="35" r="12" fill="white"/>
-  <text x="32" y="48" text-anchor="middle" font-size="52" fill="black">ಠ_</text>
+  <circle cx="18.5" cy="34" r="12" fill="white"/>
+  <text x="32" y="44" text-anchor="middle" font-size="52" fill="black">ಠ_</text>
 </svg>

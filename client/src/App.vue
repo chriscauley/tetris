@@ -1,121 +1,136 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { createGame } from '@game/tetris.js'
 import UnrestDialog from './components/UnrestDialog.vue'
 import NewGameForm from './components/NewGameForm.vue'
 import DebugForm from './components/DebugForm.vue'
 
+// Constants
 const TICK_MS = 16
-
-const canvas = ref(null)
-const showNewGameDialog = ref(false)
-const showStateDialog = ref(false)
-const showReplayDialog = ref(false)
-const showDebugDialog = ref(false)
-const stateJson = ref('')
-const replayJson = ref('')
-let world = null
-const paused = ref(false)
-let gameAnimId = null
-let replayAnimId = null
-let currentBoardHeight = 20
-let currentGravityMode = 'normal'
-let currentGameMode = 'a'
-let currentStartLevel = 1
-let currentGarbageHeight = 0
-let currentSparsity = 0
-const replaying = ref(false)
-
-const cellSize = ref(0)
-const boardX = ref(0)
-const boardY = ref(0)
-const score = ref(0)
-const lines = ref(0)
-const level = ref(1)
-const gamePhase = ref('playing')
-const activePieceId = ref(null)
-const highestBlock = ref(0)
-const gameSeed = ref('')
-const gameBoardHeight = ref(20)
-const gameGravityMode = ref('normal')
-const activeGameMode = ref('a')
-const linesGoal = ref(null)
-const animSlowdown = ref(1)
-
 const BOARD_WIDTH = 10
 const VISUAL_HEIGHT = 20
 
-const linesDisplay = computed(() => {
-  if (linesGoal.value !== null) return lines.value + ' / ' + linesGoal.value
-  return '' + lines.value
+// Game engine (non-reactive)
+let world = null
+let gameAnimId = null
+let replayAnimId = null
+let isPlayWorld = false
+let currentSettings = {
+  boardHeight: 20,
+  gravityMode: 'normal',
+  gameMode: 'a',
+  startLevel: 1,
+  garbageHeight: 0,
+  sparsity: 0,
+}
+
+// Game state (read from engine each frame)
+const game = reactive({
+  cellSize: 0,
+  boardX: 0,
+  boardY: 0,
+  score: 0,
+  lines: 0,
+  level: 1,
+  phase: 'playing',
+  activePieceId: null,
+  highestBlock: 0,
+  seed: '',
+  boardHeight: 20,
+  gravityMode: 'normal',
+  gameMode: 'a',
+  linesGoal: null,
 })
 
-const fontSize = computed(() => Math.max(11, cellSize.value * 0.55) + 'px')
-const helpFontSize = computed(() => Math.max(9, cellSize.value * 0.35) + 'px')
-const gameOverFontSize = computed(() => (cellSize.value * 1.1) + 'px')
-const gameOverSubFontSize = computed(() => (cellSize.value * 0.55) + 'px')
+// App UI state
+const canvas = ref(null)
+const paused = ref(false)
+const replaying = ref(false)
+const animSlowdown = ref(1)
+const dialogs = reactive({
+  newGame: false,
+  state: false,
+  replay: false,
+  debug: false,
+})
+const newGameDefaults = ref({})
+const stateJson = ref('')
+const replayJson = ref('')
+
+// Computed styles
+const linesDisplay = computed(() => {
+  if (game.linesGoal !== null) return game.lines + ' / ' + game.linesGoal
+  return '' + game.lines
+})
+
+const fontSize = computed(() => Math.max(11, game.cellSize * 0.55) + 'px')
+const helpFontSize = computed(() => Math.max(9, game.cellSize * 0.35) + 'px')
+const gameOverFontSize = computed(() => (game.cellSize * 1.1) + 'px')
+const gameOverSubFontSize = computed(() => (game.cellSize * 0.55) + 'px')
 
 const leftPanelStyle = computed(() => ({
   position: 'fixed',
-  left: (boardX.value - cellSize.value * 5.5) + 'px',
-  top: boardY.value + 'px',
-  height: (VISUAL_HEIGHT * cellSize.value) + 'px',
+  left: (game.boardX - game.cellSize * 5.5) + 'px',
+  top: game.boardY + 'px',
+  height: (VISUAL_HEIGHT * game.cellSize) + 'px',
   fontFamily: 'monospace',
 }))
 
 const rightPanelStyle = computed(() => ({
   position: 'fixed',
-  left: (boardX.value + BOARD_WIDTH * cellSize.value + cellSize.value * 1.5) + 'px',
-  top: boardY.value + 'px',
+  left: (game.boardX + BOARD_WIDTH * game.cellSize + game.cellSize * 1.5) + 'px',
+  top: game.boardY + 'px',
   fontFamily: 'monospace',
 }))
 
 const gameOverStyle = computed(() => ({
   position: 'fixed',
-  left: boardX.value + 'px',
-  top: boardY.value + 'px',
-  width: (BOARD_WIDTH * cellSize.value) + 'px',
-  height: (VISUAL_HEIGHT * cellSize.value) + 'px',
+  left: game.boardX + 'px',
+  top: game.boardY + 'px',
+  width: (BOARD_WIDTH * game.cellSize) + 'px',
+  height: (VISUAL_HEIGHT * game.cellSize) + 'px',
 }))
 
+// Engine sync
 function readWorldState() {
   if (!world) return
   const ui = world.ui
   if (ui) {
-    cellSize.value = ui.cellSize
-    boardX.value = ui.boardX
-    boardY.value = ui.boardY
-    highestBlock.value = ui.highestRow ?? 0
-    gameSeed.value = ui.seed ?? ''
-    gameBoardHeight.value = ui.boardHeight ?? 24
-    gameGravityMode.value = ui.gravityMode ?? 'normal'
+    game.cellSize = ui.cellSize
+    game.boardX = ui.boardX
+    game.boardY = ui.boardY
+    game.highestBlock = ui.highestRow ?? 0
+    game.seed = ui.seed ?? ''
+    game.boardHeight = ui.boardHeight ?? 24
+    game.gravityMode = ui.gravityMode ?? 'normal'
   }
   const boardId = world.query('Board', 'Score', 'GameState')[0]
   if (boardId === undefined) return
   const s = world.getComponent(boardId, 'Score')
   if (s) {
-    score.value = s.score
-    lines.value = s.lines
-    level.value = s.level
+    game.score = s.score
+    game.lines = s.lines
+    game.level = s.level
   }
   const gs = world.getComponent(boardId, 'GameState')
   if (gs) {
-    gamePhase.value = gs.phase
+    game.phase = gs.phase
   }
   const gm = world.getComponent(boardId, 'GameMode')
   if (gm) {
-    activeGameMode.value = gm.type
-    linesGoal.value = gm.linesGoal
+    game.gameMode = gm.type
+    game.linesGoal = gm.linesGoal
   }
   const apIds = world.query('ActivePiece')
   if (apIds.length > 0) {
     const ap = world.getComponent(apIds[0], 'ActivePiece')
-    activePieceId.value = ap ? ap.pieceId : null
+    game.activePieceId = ap ? ap.pieceId : null
   } else {
-    activePieceId.value = null
+    game.activePieceId = null
   }
 }
 
+// Game loop
 function stopGameLoop() {
   if (gameAnimId) {
     cancelAnimationFrame(gameAnimId)
@@ -143,56 +158,42 @@ function startGameLoop() {
   gameAnimId = requestAnimationFrame(loop)
 }
 
-let isPlayWorld = false
-
 function startGame(seed, boardHeight = 24, gravityMode = 'normal', gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0) {
   stopReplay()
   const sameConfig = world && isPlayWorld &&
-    boardHeight === currentBoardHeight &&
-    gravityMode === currentGravityMode &&
-    gameMode === currentGameMode &&
-    startLevel === currentStartLevel &&
-    garbageHeight === currentGarbageHeight &&
-    sparsity === currentSparsity
+    boardHeight === currentSettings.boardHeight &&
+    gravityMode === currentSettings.gravityMode &&
+    gameMode === currentSettings.gameMode &&
+    startLevel === currentSettings.startLevel &&
+    garbageHeight === currentSettings.garbageHeight &&
+    sparsity === currentSettings.sparsity
   if (sameConfig) {
     world.restart(seed)
   } else {
     world = createGame(canvas.value, { seed, boardHeight, gravityMode, visualHeight: VISUAL_HEIGHT, gameMode, startLevel, garbageHeight, sparsity })
-    currentBoardHeight = boardHeight
-    currentGravityMode = gravityMode
-    currentGameMode = gameMode
-    currentStartLevel = startLevel
-    currentGarbageHeight = garbageHeight
-    currentSparsity = sparsity
+    Object.assign(currentSettings, { boardHeight, gravityMode, gameMode, startLevel, garbageHeight, sparsity })
     isPlayWorld = true
     startGameLoop()
   }
 }
 
-const newGameDefaults = ref({})
-
+// New game dialog
 function onNewGame() {
-  newGameDefaults.value = {
-    boardHeight: currentBoardHeight,
-    gravityMode: currentGravityMode,
-    gameMode: currentGameMode,
-    startLevel: currentStartLevel,
-    garbageHeight: currentGarbageHeight,
-    sparsity: currentSparsity,
-  }
-  showNewGameDialog.value = true
+  newGameDefaults.value = { ...currentSettings }
+  dialogs.newGame = true
 }
 
 function onNewGameSubmit(data) {
-  showNewGameDialog.value = false
+  dialogs.newGame = false
   localStorage.setItem('tetris-settings', JSON.stringify(data))
   startGame(data.seed, data.boardHeight, data.gravityMode, data.gameMode, data.startLevel, data.garbageHeight, data.sparsity)
 }
 
 function onNewGameCancel() {
-  showNewGameDialog.value = false
+  dialogs.newGame = false
 }
 
+// State dialog
 function copyState() {
   if (!world) return
   const json = JSON.stringify(world.exportState(), null, 2)
@@ -203,14 +204,15 @@ function showState() {
   if (!world) return
   paused.value = true
   stateJson.value = JSON.stringify(world.exportState(), null, 2)
-  showStateDialog.value = true
+  dialogs.state = true
 }
 
 function closeState() {
-  showStateDialog.value = false
+  dialogs.state = false
   paused.value = false
 }
 
+// Replay
 function getFullRecording() {
   if (!world) return null
   const rec = world.getRecording()
@@ -229,11 +231,11 @@ function showReplay() {
   if (!rec) return
   paused.value = true
   replayJson.value = JSON.stringify(rec, null, 2)
-  showReplayDialog.value = true
+  dialogs.replay = true
 }
 
 function closeReplay() {
-  showReplayDialog.value = false
+  dialogs.replay = false
   paused.value = false
 }
 
@@ -308,6 +310,7 @@ async function loadReplay() {
   }
 }
 
+// Debug
 watch(animSlowdown, () => {
   if (!world) return
   if (!world.debug) world.debug = {}
@@ -315,13 +318,14 @@ watch(animSlowdown, () => {
 })
 
 function openDebugSettings() {
-  showDebugDialog.value = true
+  dialogs.debug = true
 }
 
 function closeDebugSettings() {
-  showDebugDialog.value = false
+  dialogs.debug = false
 }
 
+// Init
 onMounted(() => {
   document.addEventListener('keydown', e => {
     if (e.key.toLowerCase() === 'p') {
@@ -354,15 +358,15 @@ onMounted(() => {
   <canvas ref="canvas"></canvas>
 
   <!-- Left panel: HOLD, score info, controls -->
-  <div class="side-panel" :style="leftPanelStyle" v-if="cellSize > 0">
+  <div class="side-panel" :style="leftPanelStyle" v-if="game.cellSize > 0">
     <div class="label" :style="{ fontSize }">HOLD</div>
-    <div class="score-block" :style="{ marginTop: cellSize * 4.8 + 'px' }">
+    <div class="score-block" :style="{ marginTop: game.cellSize * 4.8 + 'px' }">
       <div class="label" :style="{ fontSize }">SCORE</div>
-      <div class="value" :style="{ fontSize, marginTop: fontSize }">{{ score }}</div>
+      <div class="value" :style="{ fontSize, marginTop: fontSize }">{{ game.score }}</div>
       <div class="label" :style="{ fontSize, marginTop: fontSize }">LINES</div>
       <div class="value" :style="{ fontSize, marginTop: fontSize }">{{ linesDisplay }}</div>
       <div class="label" :style="{ fontSize, marginTop: fontSize }">LEVEL</div>
-      <div class="value" :style="{ fontSize, marginTop: fontSize }">{{ level }}</div>
+      <div class="value" :style="{ fontSize, marginTop: fontSize }">{{ game.level }}</div>
     </div>
     <table class="controls-help" :style="{
       fontSize: helpFontSize,
@@ -380,25 +384,25 @@ onMounted(() => {
   </div>
 
   <!-- Right panel: NEXT -->
-  <div class="side-panel" :style="rightPanelStyle" v-if="cellSize > 0">
+  <div class="side-panel" :style="rightPanelStyle" v-if="game.cellSize > 0">
     <div class="label" :style="{ fontSize }">NEXT</div>
   </div>
 
   <!-- Game over overlay -->
-  <div class="game-over-overlay" :style="gameOverStyle" v-if="gamePhase === 'gameover' && cellSize > 0">
+  <div class="game-over-overlay" :style="gameOverStyle" v-if="game.phase === 'gameover' && game.cellSize > 0">
     <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">GAME OVER</div>
     <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">Press R to restart</div>
   </div>
 
   <!-- Victory overlay -->
-  <div class="game-over-overlay" :style="gameOverStyle" v-if="gamePhase === 'victory' && cellSize > 0">
+  <div class="game-over-overlay" :style="gameOverStyle" v-if="game.phase === 'victory' && game.cellSize > 0">
     <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">SUCCESS!</div>
     <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">25 Lines Cleared!</div>
     <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">Press R to play again</div>
   </div>
 
   <!-- Pause overlay -->
-  <div class="game-over-overlay" :style="gameOverStyle" v-if="paused && gamePhase !== 'gameover' && gamePhase !== 'victory' && cellSize > 0">
+  <div class="game-over-overlay" :style="gameOverStyle" v-if="paused && game.phase !== 'gameover' && game.phase !== 'victory' && game.cellSize > 0">
     <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">PAUSED</div>
     <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">Press P to resume</div>
   </div>
@@ -406,11 +410,11 @@ onMounted(() => {
   <!-- Debug panel -->
   <div class="debug-panel">
     <table>
-      <tr><td class="debug-label">piece</td><td>{{ activePieceId ?? '—' }}</td></tr>
-      <tr><td class="debug-label">highest</td><td>{{ highestBlock }}</td></tr>
-      <tr><td class="debug-label">seed</td><td>{{ gameSeed ?? '—' }}</td></tr>
-      <tr><td class="debug-label">height</td><td>{{ gameBoardHeight }}</td></tr>
-      <tr><td class="debug-label">gravity</td><td>{{ gameGravityMode }}</td></tr>
+      <tr><td class="debug-label">piece</td><td>{{ game.activePieceId ?? '—' }}</td></tr>
+      <tr><td class="debug-label">highest</td><td>{{ game.highestBlock }}</td></tr>
+      <tr><td class="debug-label">seed</td><td>{{ game.seed ?? '—' }}</td></tr>
+      <tr><td class="debug-label">height</td><td>{{ game.boardHeight }}</td></tr>
+      <tr><td class="debug-label">gravity</td><td>{{ game.gravityMode }}</td></tr>
     </table>
   </div>
 
@@ -424,25 +428,25 @@ onMounted(() => {
     <button class="btn -secondary" @click="openDebugSettings">Debug</button>
   </div>
 
-  <UnrestDialog :open="showStateDialog" title="Game State" content-class="modal__content--wide" @close="closeState">
+  <UnrestDialog :open="dialogs.state" title="Game State" content-class="modal__content--wide" @close="closeState">
     <pre class="state-pre">{{ stateJson }}</pre>
     <template #actions>
       <button class="btn -secondary" type="button" @click="closeState">Close</button>
     </template>
   </UnrestDialog>
 
-  <UnrestDialog :open="showReplayDialog" title="Replay Data" content-class="modal__content--wide" @close="closeReplay">
+  <UnrestDialog :open="dialogs.replay" title="Replay Data" content-class="modal__content--wide" @close="closeReplay">
     <pre class="state-pre">{{ replayJson }}</pre>
     <template #actions>
       <button class="btn -secondary" type="button" @click="closeReplay">Close</button>
     </template>
   </UnrestDialog>
 
-  <UnrestDialog :open="showDebugDialog" title="Debug Settings" @close="closeDebugSettings">
+  <UnrestDialog :open="dialogs.debug" title="Debug Settings" @close="closeDebugSettings">
     <DebugForm v-model:animSlowdown="animSlowdown" @close="closeDebugSettings" />
   </UnrestDialog>
 
-  <UnrestDialog :open="showNewGameDialog" title="New Game" @close="onNewGameCancel">
+  <UnrestDialog :open="dialogs.newGame" title="New Game" @close="onNewGameCancel">
     <NewGameForm :defaults="newGameDefaults" @submit="onNewGameSubmit" @cancel="onNewGameCancel" />
   </UnrestDialog>
 </template>

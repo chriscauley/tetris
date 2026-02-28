@@ -11,6 +11,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@formkit/themes": "^1.7.2",
+    "@formkit/vue": "^1.7.2",
     "seedrandom": "^3.0.5",
     "vue": "^3.5.29"
   },

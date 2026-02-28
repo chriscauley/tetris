@@ -155,3 +155,42 @@ canvas {
 .seed-dialog-content input[type="range"] {
   @apply block w-full mt-1.5 cursor-pointer accent-indigo-500;
 }
+
+.seed-dialog-content .formkit-outer {
+  @apply mb-4;
+}
+
+.formkit-label {
+  @apply text-neutral-400;
+  font-size: 13px;
+}
+
+.seed-dialog-content .formkit-help {
+  @apply text-neutral-500;
+}
+
+.seed-dialog-content .formkit-input {
+  @apply text-white font-mono text-sm bg-gray-900 border border-neutral-600 rounded;
+}
+
+.seed-dialog-content .formkit-input:focus {
+  @apply outline-none border-neutral-400;
+}
+
+.seed-dialog-content select.formkit-input {
+  @apply p-2 w-full;
+}
+
+.seed-dialog-content input[type="number"].formkit-input {
+  @apply p-2;
+  -moz-appearance: textfield;
+  width: 5em;
+}
+
+.seed-dialog-content input[type="text"].formkit-input {
+  @apply p-2 w-full;
+}
+
+.seed-dialog-content input[type="range"].formkit-input {
+  @apply bg-transparent border-none;
+}

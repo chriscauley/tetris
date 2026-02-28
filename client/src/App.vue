@@ -458,17 +458,16 @@ onMounted(() => {
     <div class="seed-dialog-backdrop" @click="closeDebugSettings"></div>
     <div class="seed-dialog-content">
       <h3>Debug Settings</h3>
-      <label>
-        Anim Slowdown: {{ animSlowdown }}x
-        <input
-          v-model.number="animSlowdown"
-          type="range"
-          min="1"
-          max="10"
-          step="1"
-          @input="syncDebugSettings"
-        />
-      </label>
+      <FormKit
+        type="range"
+        v-model="animSlowdown"
+        label="Anim Slowdown"
+        :help="`${animSlowdown}x`"
+        min="1"
+        max="10"
+        step="1"
+        @input="syncDebugSettings"
+      />
       <div class="seed-dialog-actions">
         <button type="button" @click="closeDebugSettings">Close</button>
       </div>
@@ -477,71 +476,68 @@ onMounted(() => {
 
   <dialog :open="showNewGameDialog" class="seed-dialog" v-if="showNewGameDialog">
     <div class="seed-dialog-backdrop" @click="onNewGameCancel"></div>
-    <form class="seed-dialog-content" @submit.prevent="onNewGameSubmit">
+    <FormKit type="form" class="seed-dialog-content" @submit="onNewGameSubmit" submit-label="Play" :actions="false">
       <h3>New Game</h3>
-      <label>
-        Mode
-        <select v-model="gameModeInput" autofocus>
-          <option value="a">A-Type (Marathon)</option>
-          <option value="b">B-Type (25 Lines)</option>
-        </select>
-      </label>
-      <label>
-        Starting Level
-        <input
-          v-model.number="startLevelInput"
-          type="number"
-          min="1"
-          max="10"
-        />
-      </label>
-      <label v-if="gameModeInput === 'b'">
-        Garbage Height
-        <input
-          v-model.number="garbageHeightInput"
-          type="number"
-          min="0"
-          max="5"
-        />
-      </label>
-      <label v-if="gameModeInput === 'b'">
-        Sparsity
-        <input
-          v-model.number="sparsityInput"
-          type="number"
-          min="0"
-          max="5"
-        />
-      </label>
-      <label>
-        Board Height
-        <input
-          v-model.number="linesInput"
-          type="number"
-          min="15"
-          max="50"
-        />
-      </label>
-      <label>
-        Seed
-        <input
-          v-model="seedInput"
-          type="text"
-          placeholder="Leave blank for random"
-        />
-      </label>
-      <label>
-        Gravity
-        <select v-model="gravityModeInput">
-          <option value="normal">Normal</option>
-          <option value="cascade">Cascade</option>
-          <option value="sticky">Sticky</option>
-        </select>
-      </label>
+      <FormKit
+        type="select"
+        v-model="gameModeInput"
+        label="Mode"
+        autofocus
+        :options="[
+          { value: 'a', label: 'A-Type (Marathon)' },
+          { value: 'b', label: 'B-Type (25 Lines)' },
+        ]"
+      />
+      <FormKit
+        type="number"
+        v-model="startLevelInput"
+        label="Starting Level"
+        min="1"
+        max="10"
+      />
+      <FormKit
+        v-if="gameModeInput === 'b'"
+        type="number"
+        v-model="garbageHeightInput"
+        label="Garbage Height"
+        min="0"
+        max="5"
+      />
+      <FormKit
+        v-if="gameModeInput === 'b'"
+        type="number"
+        v-model="sparsityInput"
+        label="Sparsity"
+        min="0"
+        max="5"
+      />
+      <FormKit
+        type="number"
+        v-model="linesInput"
+        label="Board Height"
+        min="15"
+        max="50"
+      />
+      <FormKit
+        type="text"
+        v-model="seedInput"
+        label="Seed"
+        placeholder="Leave blank for random"
+      />
+      <FormKit
+        type="select"
+        v-model="gravityModeInput"
+        label="Gravity"
+        :options="[
+          { value: 'normal', label: 'Normal' },
+          { value: 'cascade', label: 'Cascade' },
+          { value: 'sticky', label: 'Sticky' },
+        ]"
+      />
       <div class="seed-dialog-actions">
         <button type="button" @click="onNewGameCancel">Cancel</button>
         <button type="submit">Play</button>
       </div>
-    </form>
+    </FormKit>
   </dialog>
 </template>

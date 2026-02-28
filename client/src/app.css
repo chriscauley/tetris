@@ -1,9 +1,6 @@
 @import "tailwindcss";
 @import "./formkit.css";
-
-* {
-  @apply m-0 p-0 box-border;
-}
+@import "./btn.css";
 
 body {
   @apply overflow-hidden bg-gray-900;
@@ -57,54 +54,25 @@ canvas {
   @apply fixed top-3 right-3 flex flex-col gap-2;
 }
 
-.new-game-btn {
-  @apply px-4 py-2 text-white rounded font-mono text-sm cursor-pointer bg-neutral-800 border border-neutral-600;
-}
 
-.new-game-btn:hover {
-  @apply bg-neutral-700;
-}
-
-.seed-dialog-backdrop {
+.modal__backdrop {
   @apply fixed inset-0 bg-black/60;
 }
 
-.seed-dialog {
+.modal {
   @apply fixed inset-0 flex items-center justify-center z-10 border-none bg-transparent p-0 w-full h-full;
 }
 
-.seed-dialog-content {
-  @apply relative text-white p-6 rounded-lg font-mono z-1 bg-neutral-800 border border-neutral-600;
+.modal__content {
+  @apply relative text-white p-6 rounded-lg font-mono z-1 bg-neutral-800 border border-neutral-600 flex flex-col gap-6;
   min-width: 300px;
 }
 
-.seed-dialog-content h3 {
-  @apply mb-4;
-}
-
-
-.seed-dialog-actions {
+.modal__actions {
   @apply flex justify-end gap-2;
 }
 
-.seed-dialog-actions button {
-  @apply px-4 py-1.5 rounded font-mono cursor-pointer border border-neutral-600;
-  font-size: 13px;
-}
-
-.seed-dialog-actions button[type="button"] {
-  @apply bg-neutral-700 text-neutral-300;
-}
-
-.seed-dialog-actions button[type="submit"] {
-  @apply text-white bg-indigo-900;
-}
-
-.seed-dialog-actions button:hover {
-  @apply brightness-120;
-}
-
-.state-dialog-content {
+.modal__content--wide {
   max-width: 80vw;
   max-height: 80vh;
   overflow: auto;

@@ -9,12 +9,12 @@ defineEmits(['close'])
 </script>
 
 <template>
-  <dialog :open="open" class="seed-dialog" v-if="open">
-    <div class="seed-dialog-backdrop" @click="$emit('close')"></div>
-    <div class="seed-dialog-content" :class="contentClass">
-      <h3>{{ title }}</h3>
+  <dialog :open="open" class="modal" v-if="open">
+    <div class="modal__backdrop" @click="$emit('close')"></div>
+    <div class="modal__content" :class="contentClass">
+      <h2 v-if="title">{{ title }}</h2>
       <slot />
-      <div class="seed-dialog-actions">
+      <div class="modal__actions">
         <slot name="actions" />
       </div>
     </div>

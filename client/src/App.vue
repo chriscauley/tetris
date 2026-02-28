@@ -424,26 +424,26 @@ onMounted(() => {
   </div>
 
   <div class="btn-row">
-    <button class="new-game-btn" @click="onNewGame">New Game</button>
-    <button class="new-game-btn" @click="copyState">Copy State</button>
-    <button class="new-game-btn" @click="showState">Show State</button>
-    <button class="new-game-btn" @click="copyReplay">Copy Replay</button>
-    <button class="new-game-btn" @click="showReplay">Show Replay</button>
-    <button class="new-game-btn" @click="loadReplay">Load Replay</button>
-    <button class="new-game-btn" @click="openDebugSettings">Debug</button>
+    <button class="btn -secondary" @click="onNewGame">New Game</button>
+    <button class="btn -secondary" @click="copyState">Copy State</button>
+    <button class="btn -secondary" @click="showState">Show State</button>
+    <button class="btn -secondary" @click="copyReplay">Copy Replay</button>
+    <button class="btn -secondary" @click="showReplay">Show Replay</button>
+    <button class="btn -secondary" @click="loadReplay">Load Replay</button>
+    <button class="btn -secondary" @click="openDebugSettings">Debug</button>
   </div>
 
-  <UnrestDialog :open="showStateDialog" title="Game State" content-class="state-dialog-content" @close="closeState">
+  <UnrestDialog :open="showStateDialog" title="Game State" content-class="modal__content--wide" @close="closeState">
     <pre class="state-pre">{{ stateJson }}</pre>
     <template #actions>
-      <button type="button" @click="closeState">Close</button>
+      <button class="btn -secondary" type="button" @click="closeState">Close</button>
     </template>
   </UnrestDialog>
 
-  <UnrestDialog :open="showReplayDialog" title="Replay Data" content-class="state-dialog-content" @close="closeReplay">
+  <UnrestDialog :open="showReplayDialog" title="Replay Data" content-class="modal__content--wide" @close="closeReplay">
     <pre class="state-pre">{{ replayJson }}</pre>
     <template #actions>
-      <button type="button" @click="closeReplay">Close</button>
+      <button class="btn -secondary" type="button" @click="closeReplay">Close</button>
     </template>
   </UnrestDialog>
 
@@ -459,7 +459,7 @@ onMounted(() => {
       @input="syncDebugSettings"
     />
     <template #actions>
-      <button type="button" @click="closeDebugSettings">Close</button>
+      <button class="btn -secondary" type="button" @click="closeDebugSettings">Close</button>
     </template>
   </UnrestDialog>
 
@@ -521,10 +521,10 @@ onMounted(() => {
           { value: 'sticky', label: 'Sticky' },
         ]"
       />
-      <div class="seed-dialog-actions">
-        <button type="button" @click="onNewGameCancel">Cancel</button>
-        <button type="submit">Play</button>
-      </div>
     </FormKit>
+    <template #actions>
+      <button class="btn -secondary" type="button" @click="onNewGameCancel">Cancel</button>
+      <button class="btn -primary" @click="onNewGameSubmit">Play</button>
+    </template>
   </UnrestDialog>
 </template>

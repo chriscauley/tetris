@@ -1,0 +1,15 @@
+.btn {
+  @apply px-4 py-1.5 rounded font-mono text-sm cursor-pointer border border-neutral-600;
+}
+
+.btn.-primary {
+  @apply bg-indigo-900 text-white;
+}
+
+.btn.-secondary {
+  @apply bg-neutral-700 text-neutral-300;
+}
+
+.btn:hover {
+  @apply brightness-120;
+}

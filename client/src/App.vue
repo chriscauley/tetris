@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { createGame } from '@game/tetris.js'
+import UnrestDialog from './components/UnrestDialog.vue'
 
 const TICK_MS = 16
 
@@ -432,52 +433,38 @@ onMounted(() => {
     <button class="new-game-btn" @click="openDebugSettings">Debug</button>
   </div>
 
-  <dialog :open="showStateDialog" class="seed-dialog" v-if="showStateDialog">
-    <div class="seed-dialog-backdrop" @click="closeState"></div>
-    <div class="seed-dialog-content state-dialog-content">
-      <h3>Game State</h3>
-      <pre class="state-pre">{{ stateJson }}</pre>
-      <div class="seed-dialog-actions">
-        <button type="button" @click="closeState">Close</button>
-      </div>
-    </div>
-  </dialog>
+  <UnrestDialog :open="showStateDialog" title="Game State" content-class="state-dialog-content" @close="closeState">
+    <pre class="state-pre">{{ stateJson }}</pre>
+    <template #actions>
+      <button type="button" @click="closeState">Close</button>
+    </template>
+  </UnrestDialog>
 
-  <dialog :open="showReplayDialog" class="seed-dialog" v-if="showReplayDialog">
-    <div class="seed-dialog-backdrop" @click="closeReplay"></div>
-    <div class="seed-dialog-content state-dialog-content">
-      <h3>Replay Data</h3>
-      <pre class="state-pre">{{ replayJson }}</pre>
-      <div class="seed-dialog-actions">
-        <button type="button" @click="closeReplay">Close</button>
-      </div>
-    </div>
-  </dialog>
+  <UnrestDialog :open="showReplayDialog" title="Replay Data" content-class="state-dialog-content" @close="closeReplay">
+    <pre class="state-pre">{{ replayJson }}</pre>
+    <template #actions>
+      <button type="button" @click="closeReplay">Close</button>
+    </template>
+  </UnrestDialog>
 
-  <dialog :open="showDebugDialog" class="seed-dialog" v-if="showDebugDialog">
-    <div class="seed-dialog-backdrop" @click="closeDebugSettings"></div>
-    <div class="seed-dialog-content">
-      <h3>Debug Settings</h3>
-      <FormKit
-        type="range"
-        v-model="animSlowdown"
-        label="Anim Slowdown"
-        :help="`${animSlowdown}x`"
-        min="1"
-        max="10"
-        step="1"
-        @input="syncDebugSettings"
-      />
-      <div class="seed-dialog-actions">
-        <button type="button" @click="closeDebugSettings">Close</button>
-      </div>
-    </div>
-  </dialog>
+  <UnrestDialog :open="showDebugDialog" title="Debug Settings" @close="closeDebugSettings">
+    <FormKit
+      type="range"
+      v-model="animSlowdown"
+      label="Anim Slowdown"
+      :help="`${animSlowdown}x`"
+      min="1"
+      max="10"
+      step="1"
+      @input="syncDebugSettings"
+    />
+    <template #actions>
+      <button type="button" @click="closeDebugSettings">Close</button>
+    </template>
+  </UnrestDialog>
 
-  <dialog :open="showNewGameDialog" class="seed-dialog" v-if="showNewGameDialog">
-    <div class="seed-dialog-backdrop" @click="onNewGameCancel"></div>
-    <FormKit type="form" class="seed-dialog-content" @submit="onNewGameSubmit" submit-label="Play" :actions="false">
-      <h3>New Game</h3>
+  <UnrestDialog :open="showNewGameDialog" title="New Game" @close="onNewGameCancel">
+    <FormKit type="form" @submit="onNewGameSubmit" :actions="false">
       <FormKit
         type="select"
         v-model="gameModeInput"
@@ -539,5 +526,5 @@ onMounted(() => {
         <button type="submit">Play</button>
       </div>
     </FormKit>
-  </dialog>
+  </UnrestDialog>
 </template>

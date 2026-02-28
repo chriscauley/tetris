@@ -17,6 +17,10 @@ function runReplay(recording) {
     gravityMode: recording.gravityMode || (recording.cascadeGravity ? 'cascade' : 'normal'),
     mode: 'replay',
     recording,
+    gameMode: recording.gameMode || 'a',
+    startLevel: recording.startLevel || 1,
+    garbageHeight: recording.garbageHeight || 0,
+    sparsity: recording.sparsity || 0,
   })
   while (world.replayTick()) { /* advance until done */ }
   return world

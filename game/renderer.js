@@ -393,16 +393,11 @@ export class RenderSystem {
   gridNeighborsByType(grid, pieceTable, x, y) {
     const id = grid[y][x];
     if (id === null) return { top: false, bottom: false, left: false, right: false };
-    const type = pieceTable.pieces[id].type;
-    const typeAt = (gy, gx) => {
-      const cid = grid[gy][gx];
-      return cid !== null ? pieceTable.pieces[cid].type : null;
-    };
     return {
-      top:    y > 0                    && typeAt(y - 1, x) === type,
-      bottom: y < grid.length - 1      && typeAt(y + 1, x) === type,
-      left:   x > 0                    && typeAt(y, x - 1) === type,
-      right:  x < grid[0].length - 1   && typeAt(y, x + 1) === type,
+      top:    y > 0                    && grid[y - 1][x] === id,
+      bottom: y < grid.length - 1      && grid[y + 1][x] === id,
+      left:   x > 0                    && grid[y][x - 1] === id,
+      right:  x < grid[0].length - 1   && grid[y][x + 1] === id,
     };
   }
 

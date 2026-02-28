@@ -14,12 +14,20 @@ const replayJson = ref('')
 const seedInput = ref('')
 const linesInput = ref(20)
 const gravityModeInput = ref('normal')
+const gameModeInput = ref('a')
+const startLevelInput = ref(1)
+const garbageHeightInput = ref(0)
+const sparsityInput = ref(0)
 let world = null
 const paused = ref(false)
 let gameAnimId = null
 let replayAnimId = null
 let currentBoardHeight = 20
 let currentGravityMode = 'normal'
+let currentGameMode = 'a'
+let currentStartLevel = 1
+let currentGarbageHeight = 0
+let currentSparsity = 0
 const replaying = ref(false)
 
 const cellSize = ref(0)
@@ -34,10 +42,17 @@ const highestBlock = ref(0)
 const gameSeed = ref('')
 const gameBoardHeight = ref(20)
 const gameGravityMode = ref('normal')
+const activeGameMode = ref('a')
+const linesGoal = ref(null)
 const animSlowdown = ref(1)
 
 const BOARD_WIDTH = 10
 const VISUAL_HEIGHT = 20
+
+const linesDisplay = computed(() => {
+  if (linesGoal.value !== null) return lines.value + ' / ' + linesGoal.value
+  return '' + lines.value
+})
 
 const fontSize = computed(() => Math.max(11, cellSize.value * 0.55) + 'px')
 const helpFontSize = computed(() => Math.max(9, cellSize.value * 0.35) + 'px')
@@ -91,6 +106,11 @@ function readWorldState() {
   if (gs) {
     gamePhase.value = gs.phase
   }
+  const gm = world.getComponent(boardId, 'GameMode')
+  if (gm) {
+    activeGameMode.value = gm.type
+    linesGoal.value = gm.linesGoal
+  }
   const apIds = world.query('ActivePiece')
   if (apIds.length > 0) {
     const ap = world.getComponent(apIds[0], 'ActivePiece')
@@ -129,14 +149,25 @@ function startGameLoop() {
 
 let isPlayWorld = false
 
-function startGame(seed, boardHeight = 24, gravityMode = 'normal') {
+function startGame(seed, boardHeight = 24, gravityMode = 'normal', gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0) {
   stopReplay()
-  if (world && isPlayWorld && boardHeight === currentBoardHeight && gravityMode === currentGravityMode) {
+  const sameConfig = world && isPlayWorld &&
+    boardHeight === currentBoardHeight &&
+    gravityMode === currentGravityMode &&
+    gameMode === currentGameMode &&
+    startLevel === currentStartLevel &&
+    garbageHeight === currentGarbageHeight &&
+    sparsity === currentSparsity
+  if (sameConfig) {
     world.restart(seed)
   } else {
-    world = createGame(canvas.value, { seed, boardHeight, gravityMode, visualHeight: VISUAL_HEIGHT })
+    world = createGame(canvas.value, { seed, boardHeight, gravityMode, visualHeight: VISUAL_HEIGHT, gameMode, startLevel, garbageHeight, sparsity })
     currentBoardHeight = boardHeight
     currentGravityMode = gravityMode
+    currentGameMode = gameMode
+    currentStartLevel = startLevel
+    currentGarbageHeight = garbageHeight
+    currentSparsity = sparsity
     isPlayWorld = true
     startGameLoop()
   }
@@ -146,6 +177,10 @@ function onNewGame() {
   seedInput.value = ''
   linesInput.value = currentBoardHeight
   gravityModeInput.value = currentGravityMode
+  gameModeInput.value = currentGameMode
+  startLevelInput.value = currentStartLevel
+  garbageHeightInput.value = currentGarbageHeight
+  sparsityInput.value = currentSparsity
   showNewGameDialog.value = true
 }
 
@@ -153,9 +188,13 @@ function onNewGameSubmit() {
   const seed = seedInput.value.trim() || undefined
   const boardHeight = Math.max(15, Math.min(50, Math.floor(Number(linesInput.value) || 24)))
   const gravityMode = gravityModeInput.value
+  const gameMode = gameModeInput.value
+  const startLevel = Math.max(1, Math.min(10, Math.floor(Number(startLevelInput.value) || 1)))
+  const garbageHeight = gameMode === 'b' ? Math.max(0, Math.min(5, Math.floor(Number(garbageHeightInput.value) || 0))) : 0
+  const sparsity = gameMode === 'b' ? Math.max(0, Math.floor(Number(sparsityInput.value) || 0)) : 0
   showNewGameDialog.value = false
-  localStorage.setItem('tetris-settings', JSON.stringify({ seed, boardHeight, gravityMode }))
-  startGame(seed, boardHeight, gravityMode)
+  localStorage.setItem('tetris-settings', JSON.stringify({ seed, boardHeight, gravityMode, gameMode, startLevel, garbageHeight, sparsity }))
+  startGame(seed, boardHeight, gravityMode, gameMode, startLevel, garbageHeight, sparsity)
 }
 
 function onNewGameCancel() {
@@ -231,6 +270,10 @@ function startReplay(recording) {
     visualHeight: VISUAL_HEIGHT,
     mode: 'replay',
     recording,
+    gameMode: recording.gameMode || 'a',
+    startLevel: recording.startLevel || 1,
+    garbageHeight: recording.garbageHeight || 0,
+    sparsity: recording.sparsity || 0,
   })
   replaying.value = true
 
@@ -293,21 +336,25 @@ onMounted(() => {
       if (replaying.value) return
       if (!world) return
       const state = world.getComponent(world.boardId, 'GameState')
-      if (state.phase === 'gameover') return
+      if (state.phase === 'gameover' || state.phase === 'victory') return
       paused.value = !paused.value
     }
   })
 
-  let seed, boardHeight, gravityMode
+  let seed, boardHeight, gravityMode, gameMode, startLevel, garbageHeight, sparsity
   try {
     const saved = JSON.parse(localStorage.getItem('tetris-settings'))
     if (saved) {
       seed = saved.seed
       boardHeight = saved.boardHeight
       gravityMode = saved.gravityMode || (saved.cascadeGravity ? 'cascade' : 'normal')
+      gameMode = saved.gameMode
+      startLevel = saved.startLevel
+      garbageHeight = saved.garbageHeight
+      sparsity = saved.sparsity
     }
   } catch {}
-  startGame(seed, boardHeight, gravityMode)
+  startGame(seed, boardHeight, gravityMode, gameMode, startLevel, garbageHeight, sparsity)
 })
 </script>
 
@@ -321,7 +368,7 @@ onMounted(() => {
       <div class="label" :style="{ fontSize }">SCORE</div>
       <div class="value" :style="{ fontSize, marginTop: fontSize }">{{ score }}</div>
       <div class="label" :style="{ fontSize, marginTop: fontSize }">LINES</div>
-      <div class="value" :style="{ fontSize, marginTop: fontSize }">{{ lines }}</div>
+      <div class="value" :style="{ fontSize, marginTop: fontSize }">{{ linesDisplay }}</div>
       <div class="label" :style="{ fontSize, marginTop: fontSize }">LEVEL</div>
       <div class="value" :style="{ fontSize, marginTop: fontSize }">{{ level }}</div>
     </div>
@@ -351,8 +398,15 @@ onMounted(() => {
     <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">Press R to restart</div>
   </div>
 
+  <!-- Victory overlay -->
+  <div class="game-over-overlay" :style="gameOverStyle" v-if="gamePhase === 'victory' && cellSize > 0">
+    <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">SUCCESS!</div>
+    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">25 Lines Cleared!</div>
+    <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">Press R to play again</div>
+  </div>
+
   <!-- Pause overlay -->
-  <div class="game-over-overlay" :style="gameOverStyle" v-if="paused && gamePhase !== 'gameover' && cellSize > 0">
+  <div class="game-over-overlay" :style="gameOverStyle" v-if="paused && gamePhase !== 'gameover' && gamePhase !== 'victory' && cellSize > 0">
     <div class="game-over-text" :style="{ fontSize: gameOverFontSize }">PAUSED</div>
     <div class="game-over-sub" :style="{ fontSize: gameOverSubFontSize }">Press P to resume</div>
   </div>
@@ -426,13 +480,46 @@ onMounted(() => {
     <form class="seed-dialog-content" @submit.prevent="onNewGameSubmit">
       <h3>New Game</h3>
       <label>
-        Lines
+        Mode
+        <select v-model="gameModeInput" autofocus>
+          <option value="a">A-Type (Marathon)</option>
+          <option value="b">B-Type (25 Lines)</option>
+        </select>
+      </label>
+      <label>
+        Starting Level
+        <input
+          v-model.number="startLevelInput"
+          type="number"
+          min="1"
+          max="10"
+        />
+      </label>
+      <label v-if="gameModeInput === 'b'">
+        Garbage Height
+        <input
+          v-model.number="garbageHeightInput"
+          type="number"
+          min="0"
+          max="5"
+        />
+      </label>
+      <label v-if="gameModeInput === 'b'">
+        Sparsity
+        <input
+          v-model.number="sparsityInput"
+          type="number"
+          min="0"
+          max="5"
+        />
+      </label>
+      <label>
+        Board Height
         <input
           v-model.number="linesInput"
           type="number"
           min="15"
           max="50"
-          autofocus
         />
       </label>
       <label>

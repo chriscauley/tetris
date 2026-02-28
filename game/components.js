@@ -10,8 +10,11 @@ export const Components = {
   Drop(interval = 63) {
     return { timer: 0, interval, softDrop: false };
   },
-  Score() {
-    return { score: 0, lines: 0, level: 1 };
+  Score(startLevel = 1) {
+    return { score: 0, lines: 0, level: startLevel };
+  },
+  GameMode(type = 'a', startLevel = 1, garbageHeight = 0, linesGoal = null, sparsity = 0) {
+    return { type, startLevel, garbageHeight, linesGoal, sparsity };
   },
   NextQueue(rng) {
     return { queue: [], rng };

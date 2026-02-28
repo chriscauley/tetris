@@ -1,4 +1,4 @@
-import { PIECE_SHAPES } from './pieces.js';
+import { PIECE_SHAPES, G } from './pieces.js';
 import { getBlocks } from './pieces.js';
 import { Components } from './components.js';
 import { canMove, shuffledBag, getDropInterval } from './helpers.js';
@@ -10,7 +10,7 @@ export class SpawnSystem {
     const boardId = world.query('Board', 'GameState')[0];
     if (boardId === undefined) return;
     const state = world.getComponent(boardId, 'GameState');
-    if (state.phase === 'gameover') return;
+    if (state.phase === 'gameover' || state.phase === 'victory') return;
 
     if (world.query('ActivePiece').length > 0) return;
 
@@ -119,7 +119,7 @@ export class MovementSystem {
     const boardId = world.query('Board', 'GameState', 'Input')[0];
     if (boardId === undefined) return;
     const state = world.getComponent(boardId, 'GameState');
-    if (state.phase === 'gameover') return;
+    if (state.phase === 'gameover' || state.phase === 'victory') return;
 
     const board = world.getComponent(boardId, 'Board');
     const input = world.getComponent(boardId, 'Input');
@@ -259,7 +259,7 @@ export class GravitySystem {
     const boardId = world.query('Board', 'GameState')[0];
     if (boardId === undefined) return;
     const state = world.getComponent(boardId, 'GameState');
-    if (state.phase === 'gameover' || state.phase === 'lock_now' || state.hardDropping) return;
+    if (state.phase === 'gameover' || state.phase === 'victory' || state.phase === 'lock_now' || state.hardDropping) return;
 
     const pieceIds = world.query('ActivePiece', 'Drop');
     if (pieceIds.length === 0) return;
@@ -290,7 +290,7 @@ export class LockSystem {
     const boardId = world.query('Board', 'GameState')[0];
     if (boardId === undefined) return;
     const state = world.getComponent(boardId, 'GameState');
-    if (state.phase === 'gameover') return;
+    if (state.phase === 'gameover' || state.phase === 'victory') return;
 
     const pieceIds = world.query('ActivePiece');
     if (pieceIds.length === 0) return;
@@ -380,7 +380,7 @@ export class LineClearSystem {
     return groups;
   }
 
-  compactColumns(board) {
+  compactColumns(board, table) {
     const cellDrops = {};
     let anyMoved = true;
     while (anyMoved) {
@@ -394,6 +394,9 @@ export class LineClearSystem {
         return maxB - maxA;
       });
       for (const group of groups) {
+        // Garbage blocks are pinned and never fall
+        const pieceId = board.grid[group[0].y][group[0].x];
+        if (table && table.pieces[pieceId] && table.pieces[pieceId].type === G) continue;
         const groupCellSet = new Set(group.map(c => c.x + ',' + c.y));
         let minDrop = board.grid.length;
         for (const cell of group) {
@@ -437,6 +440,7 @@ export class LineClearSystem {
         if (board.grid[y][x] !== null && !visited[y][x]) {
           const pieceId = board.grid[y][x];
           const type = table.pieces[pieceId].type;
+          if (type === G) { visited[y][x] = true; continue; }
           const cells = [];
           const ids = new Set();
           const stack = [{ x, y }];
@@ -492,10 +496,14 @@ export class LineClearSystem {
     const boardId = world.query('Board', 'Score')[0];
     if (boardId === undefined) return;
     if (world.query('ActivePiece').length > 0) return;
+    const state = world.getComponent(boardId, 'GameState');
+    if (state && (state.phase === 'gameover' || state.phase === 'victory')) return;
 
     const board = world.getComponent(boardId, 'Board');
     const score = world.getComponent(boardId, 'Score');
     const table = world.getComponent(boardId, 'PieceTable');
+    const gm = world.getComponent(boardId, 'GameMode');
+    const startLevel = gm ? gm.startLevel : 1;
     const points = [0, 100, 300, 500, 800];
 
     if (board.gravityMode !== 'normal') {
@@ -506,7 +514,7 @@ export class LineClearSystem {
         score.score += (points[linesCleared] || 800) * score.level;
         totalLines += linesCleared;
         if (board.gravityMode === 'sticky') this.mergeByType(board, table);
-        const falls = this.compactColumns(board);
+        const falls = this.compactColumns(board, table);
         if (Object.keys(falls).length > 0) {
           const snapshot = board.grid.map(row =>
             row.map(cell => cell !== null ? table.pieces[cell].type : null)
@@ -519,8 +527,9 @@ export class LineClearSystem {
       if (totalLines > 0) {
         board.gridVersion++;
         score.lines += totalLines;
-        score.level = Math.floor(score.lines / 10) + 1;
+        score.level = Math.floor(score.lines / 10) + startLevel;
         this.recyclePieceIds(world, boardId, board, table);
+        this.checkVictory(world, boardId, score, gm);
       }
     } else {
       const linesCleared = this.clearFullRows(board);
@@ -528,9 +537,18 @@ export class LineClearSystem {
         board.gridVersion++;
         score.score += (points[linesCleared] || 800) * score.level;
         score.lines += linesCleared;
-        score.level = Math.floor(score.lines / 10) + 1;
+        score.level = Math.floor(score.lines / 10) + startLevel;
         this.recyclePieceIds(world, boardId, board, table);
+        this.checkVictory(world, boardId, score, gm);
       }
+    }
+  }
+
+  checkVictory(world, boardId, score, gm) {
+    if (!gm || gm.linesGoal === null) return;
+    if (score.lines >= gm.linesGoal) {
+      const state = world.getComponent(boardId, 'GameState');
+      state.phase = 'victory';
     }
   }
 }

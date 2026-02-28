@@ -6,6 +6,7 @@ export const S = 4;
 export const Z = 5;
 export const J = 6;
 export const L = 7;
+export const G = 8;
 
 export const PIECE_TYPES = [I, O, T, S, Z, J, L];
 
@@ -29,6 +30,7 @@ export const PIECE_COLORS = [
   '#f00000', // Z
   '#0000f0', // J
   '#f0a000', // L
+  '#808080', // G (garbage)
 ];
 
 function rotateMatrix(matrix) {

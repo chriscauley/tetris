@@ -4,6 +4,7 @@ import { Components } from './components.js';
 import { InputSystem, SpawnSystem, MovementSystem, GravitySystem, LockSystem, LineClearSystem } from './systems.js';
 import { RenderSystem } from './renderer.js';
 import { RecorderSystem, ReplaySystem } from './recorder.js';
+import { fillGarbage } from './helpers.js';
 
 const CELL_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -18,20 +19,28 @@ function decodeCell(ch) {
   return i >= 0 ? i : null;
 }
 
-export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mode = 'play', recording, gravityMode = 'normal', cascadeGravity, visualHeight = 20 } = {}) {
+export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mode = 'play', recording, gravityMode = 'normal', cascadeGravity, visualHeight = 20, gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0 } = {}) {
   const resolvedGravityMode = gravityMode !== 'normal' ? gravityMode : (cascadeGravity ? 'cascade' : 'normal');
   const rng = seedrandom(seed, { state: true });
   const world = new World();
   world.seed = seed;
 
   const boardId = world.createEntity();
+  const linesGoal = gameMode === 'b' ? 25 : null;
   world.addComponent(boardId, 'Board', Components.Board(boardWidth, boardHeight, resolvedGravityMode, visualHeight));
-  world.addComponent(boardId, 'Score', Components.Score());
+  world.addComponent(boardId, 'Score', Components.Score(startLevel));
   world.addComponent(boardId, 'GameState', Components.GameState());
   world.addComponent(boardId, 'NextQueue', Components.NextQueue(rng));
   world.addComponent(boardId, 'HoldPiece', Components.HoldPiece());
   world.addComponent(boardId, 'PieceTable', Components.PieceTable());
   world.addComponent(boardId, 'Input', Components.Input());
+  world.addComponent(boardId, 'GameMode', Components.GameMode(gameMode, startLevel, garbageHeight, linesGoal, sparsity));
+
+  if (gameMode === 'b' && garbageHeight > 0) {
+    const board = world.getComponent(boardId, 'Board');
+    const table = world.getComponent(boardId, 'PieceTable');
+    fillGarbage(board, table, rng, garbageHeight, sparsity);
+  }
 
   let recorderSystem = null;
   let replaySystem = null;
@@ -59,8 +68,10 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mo
     const board = world.getComponent(boardId, 'Board');
     for (let y = 0; y < board.grid.length; y++) board.grid[y].fill(null);
     board.gridVersion++;
+    const gm = world.getComponent(boardId, 'GameMode');
+    const sl = gm ? gm.startLevel : 1;
     const score = world.getComponent(boardId, 'Score');
-    Object.assign(score, { score: 0, lines: 0, level: 1 });
+    Object.assign(score, { score: 0, lines: 0, level: sl });
     const state = world.getComponent(boardId, 'GameState');
     Object.assign(state, { phase: 'playing', lockTimer: 0, lockResets: 0, hardDropping: false });
     const nq = world.getComponent(boardId, 'NextQueue');
@@ -71,6 +82,9 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mo
     Object.assign(hold, { type: null, pieceId: null, used: false });
     const table = world.getComponent(boardId, 'PieceTable');
     Object.assign(table, { pieces: {}, nextId: 1, freeIds: [] });
+    if (gm && gm.type === 'b' && gm.garbageHeight > 0) {
+      fillGarbage(board, table, nq.rng, gm.garbageHeight, gm.sparsity);
+    }
   }
 
   world.restart = function(newSeed) {
@@ -85,6 +99,13 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mo
     const board = world.getComponent(boardId, 'Board');
     rec.boardHeight = board.height;
     rec.gravityMode = board.gravityMode;
+    const gm = world.getComponent(boardId, 'GameMode');
+    if (gm) {
+      rec.gameMode = gm.type;
+      rec.startLevel = gm.startLevel;
+      rec.garbageHeight = gm.garbageHeight;
+      rec.sparsity = gm.sparsity;
+    }
     return rec;
   };
 
@@ -170,7 +191,7 @@ export function createGame(canvas, { boardWidth = 10, boardHeight = 24, seed, mo
     document.addEventListener('keydown', e => {
       if (e.key.toLowerCase() === 'r') {
         const state = world.getComponent(boardId, 'GameState');
-        if (state.phase === 'gameover') {
+        if (state.phase === 'gameover' || state.phase === 'victory') {
           restart(seed);
         }
       }

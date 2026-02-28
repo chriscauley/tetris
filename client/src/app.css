@@ -53,7 +53,9 @@ canvas {
 }
 
 .score-block {
-  margin-top: calc(var(--cell-size) * 4.8);
+  position: absolute;
+  top: calc(var(--cell-size) * 4.8);
+  width: calc(var(--cell-size) * 4.55);
   border-collapse: collapse;
 }
 

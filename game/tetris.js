@@ -16,7 +16,7 @@ const decodeCell = (ch) => {
   return i >= 0 ? i : null;
 }
 
-export const createGame = (canvas, { boardWidth = 10, boardHeight = 24, seed, mode = 'play', recording, gravityMode = 'normal', cascadeGravity, visualHeight = 20, gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0, manualShake = false, shakeAnimation = false, keyMap } = {}) => {
+export const createGame = (canvas, { boardWidth = 10, boardHeight = 24, seed, mode = 'play', recording, gravityMode = 'normal', cascadeGravity, visualHeight = 20, gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0, manualShake = false, shakeAnimation = false, keyMap, handleRestart = true } = {}) => {
   const resolvedGravityMode = gravityMode !== 'normal' ? gravityMode : (cascadeGravity ? 'cascade' : 'normal');
   const rng = seedrandom(seed, { state: true });
   const world = new World();
@@ -42,12 +42,14 @@ export const createGame = (canvas, { boardWidth = 10, boardHeight = 24, seed, mo
 
   let recorderSystem = null;
   let replaySystem = null;
+  let inputSystem = null;
 
   if (mode === 'replay' && recording) {
     replaySystem = new ReplaySystem(recording.frames);
     world.addSystem(replaySystem);
   } else {
-    world.addSystem(new InputSystem(keyMap));
+    inputSystem = new InputSystem(keyMap);
+    world.addSystem(inputSystem);
     recorderSystem = new RecorderSystem();
     world.addSystem(recorderSystem);
   }
@@ -191,16 +193,23 @@ export const createGame = (canvas, { boardWidth = 10, boardHeight = 24, seed, mo
     }
   };
 
-  if (typeof document !== 'undefined' && mode !== 'replay') {
-    document.addEventListener('keydown', e => {
+  let _restartHandler = null;
+  if (typeof document !== 'undefined' && mode !== 'replay' && handleRestart) {
+    _restartHandler = e => {
       if (e.key.toLowerCase() === 'r') {
         const state = world.getComponent(boardId, 'GameState');
         if (state.phase === 'gameover' || state.phase === 'victory') {
           restart(seed);
         }
       }
-    });
+    };
+    document.addEventListener('keydown', _restartHandler);
   }
+
+  world.destroy = () => {
+    if (_restartHandler) document.removeEventListener('keydown', _restartHandler);
+    if (inputSystem) inputSystem.destroy();
+  };
 
   return world;
 }

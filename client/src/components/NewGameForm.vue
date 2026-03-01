@@ -33,7 +33,8 @@ const levelOptions = [
 
 <template>
   <FormKit v-model="form" type="form" :actions="false" @submit="onSubmit">
-    <FormKit type="select" name="gameMode" label="Mode" autofocus :options="gameModeOptions" />
+    <FormKit type="select" name="playerCount" label="Players" number autofocus :options="[1, 2]" />
+    <FormKit type="select" name="gameMode" label="Mode" :options="gameModeOptions" />
     <FormKit type="select" name="startLevel" label="Starting Level" number :options="levelOptions" />
     <fieldset v-if="form.gameMode === 'b'">
       <legend>B-Type Options</legend>

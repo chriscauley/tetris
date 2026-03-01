@@ -17,6 +17,18 @@ canvas {
   @apply block;
 }
 
+.game-container {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+}
+
+.player-area {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+
 .game-area {
   --board-w: calc(10 * var(--cell-size));
   --board-h: calc(20 * var(--cell-size));
@@ -28,7 +40,7 @@ canvas {
 
 .side-panel {
   @apply select-none whitespace-pre;
-  position: fixed;
+  position: absolute;
   font-family: monospace;
   font-size: var(--font-size);
 }
@@ -117,7 +129,7 @@ canvas {
 }
 
 .game-over-overlay {
-  @apply fixed flex flex-col items-center justify-center z-5 bg-black/75;
+  @apply absolute flex flex-col items-center justify-center z-5 bg-black/75;
   left: var(--board-x);
   top: var(--board-y);
   width: var(--board-w);

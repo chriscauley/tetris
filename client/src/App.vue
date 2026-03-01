@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue'
 import { createGame } from '@game/tetris.js'
 import { DEFAULT_KEY_MAP } from '@game/systems.js'
 import UnrestDialog from './components/UnrestDialog.vue'
@@ -15,14 +15,28 @@ const replayTests = Object.entries(
 const TICK_MS = 16
 const VISUAL_HEIGHT = 20
 
+const MULTIPLAYER_P1_KEYS = {
+  left: ['KeyA'], right: ['KeyD'], softdrop: ['KeyS'], harddrop: ['KeyF'],
+  rotate_cw: ['KeyW', 'KeyX'], rotate_ccw: ['KeyQ', 'KeyZ'],
+  hold: ['KeyE', 'KeyC'], shake: ['KeyR', 'KeyV'],
+}
+
+const MULTIPLAYER_P2_KEYS = {
+  left: ['KeyJ'], right: ['KeyL'], softdrop: ['KeyK'], harddrop: ['KeyH'],
+  rotate_cw: ['KeyI', 'Comma'], rotate_ccw: ['KeyO', 'Period'],
+  hold: ['KeyU', 'KeyM'], shake: ['KeyY', 'KeyN'],
+}
+
 // Game engine (non-reactive)
-let world = null
+let worlds = [null, null]
 let gameAnimId = null
 let replayAnimId = null
 let isPlayWorld = false
 let currentRecording = null
 const currentKeyMap = ref(null)
+const playerCount = ref(1)
 let currentSettings = {
+  playerCount: 1,
   boardHeight: 20,
   gravityMode: 'normal',
   manualShake: false,
@@ -33,8 +47,7 @@ let currentSettings = {
   sparsity: 0,
 }
 
-// Game state (read from engine each frame)
-const game = reactive({
+const makePlayerState = () => ({
   cellSize: 0,
   boardX: 0,
   boardY: 0,
@@ -52,8 +65,12 @@ const game = reactive({
   linesGoal: null,
 })
 
+// Game state (read from engine each frame)
+const players = reactive([makePlayerState(), makePlayerState()])
+const activePlayers = computed(() => players.slice(0, playerCount.value))
+
 // App UI state
-const canvas = ref(null)
+const canvasRefs = [ref(null), ref(null)]
 const paused = ref(false)
 const replaying = ref(false)
 const replayPaused = ref(false)
@@ -72,81 +89,85 @@ const stateJson = ref('')
 const replayJson = ref('')
 
 // Computed styles
-const linesDisplay = computed(() => {
-  if (game.linesGoal !== null) return game.lines + ' / ' + game.linesGoal
-  return '' + game.lines
-})
-
-const scoreRows = computed(() => [
-  ['SCORE', game.score],
-  ['LINES', linesDisplay.value],
-  ['LEVEL', game.level],
-])
-
 const CODE_DISPLAY_SHORT = {
   ArrowLeft: '\u2190', ArrowRight: '\u2192', ArrowUp: '\u2191', ArrowDown: '\u2193',
   Space: 'Space', ShiftLeft: 'Shift', ShiftRight: 'Shift',
   ControlLeft: 'Ctrl', ControlRight: 'Ctrl',
+  Comma: ',', Period: '.',
 }
 const shortCode = (c) => CODE_DISPLAY_SHORT[c] || c.replace(/^Key/, '').replace(/^Digit/, '')
 
-const controlRows = computed(() => {
-  const km = currentKeyMap.value || DEFAULT_KEY_MAP
+const linesDisplay = (p) => p.linesGoal !== null ? p.lines + ' / ' + p.linesGoal : '' + p.lines
+
+const scoreRows = (p) => [
+  ['SCORE', p.score],
+  ['LINES', linesDisplay(p)],
+  ['LEVEL', p.level],
+]
+
+const controlRows = (idx) => {
+  let km
+  if (playerCount.value === 2) {
+    km = idx === 0 ? MULTIPLAYER_P1_KEYS : MULTIPLAYER_P2_KEYS
+  } else {
+    km = currentKeyMap.value || DEFAULT_KEY_MAP
+  }
   const row = (action, label) => [km[action]?.map(shortCode).join(' ') || '', label]
+  const p = players[idx]
   const rows = [
     row('left', 'Move Left'), row('right', 'Move Right'),
     row('rotate_cw', 'Rotate CW'), row('rotate_ccw', 'Rotate CCW'),
     row('softdrop', 'Soft Drop'), row('harddrop', 'Hard Drop'),
-    row('hold', 'Hold'), ['P', 'Pause'],
+    row('hold', 'Hold'), ['Esc', 'Pause'],
   ]
-  if (game.gravityMode !== 'normal' && game.manualShake) rows.push(row('shake', 'Shake'))
+  if (p.gravityMode !== 'normal' && p.manualShake) rows.push(row('shake', 'Shake'))
   return rows
-})
+}
 
-const gameAreaStyle = computed(() => ({
-  '--cell-size': game.cellSize + 'px',
-  '--board-x': game.boardX + 'px',
-  '--board-y': game.boardY + 'px',
-}))
+const playerAreaStyle = (idx) => {
+  const p = players[idx]
+  return {
+    '--cell-size': p.cellSize + 'px',
+    '--board-x': p.boardX + 'px',
+    '--board-y': p.boardY + 'px',
+  }
+}
 
 // Engine sync
-const readWorldState = () => {
+const readWorldState = (idx) => {
+  const world = worlds[idx]
   if (!world) return
+  const p = players[idx]
   const ui = world.ui
   if (ui) {
-    game.cellSize = ui.cellSize
-    game.boardX = ui.boardX
-    game.boardY = ui.boardY
-    game.highestBlock = ui.highestRow ?? 0
-    game.seed = ui.seed ?? ''
-    game.boardHeight = ui.boardHeight ?? 24
-    game.gravityMode = ui.gravityMode ?? 'normal'
-    game.manualShake = ui.manualShake ?? false
+    p.cellSize = ui.cellSize
+    p.boardX = ui.boardX
+    p.boardY = ui.boardY
+    p.highestBlock = ui.highestRow ?? 0
+    p.seed = ui.seed ?? ''
+    p.boardHeight = ui.boardHeight ?? 24
+    p.gravityMode = ui.gravityMode ?? 'normal'
+    p.manualShake = ui.manualShake ?? false
   }
   const boardId = world.query('Board', 'Score', 'GameState')[0]
   if (boardId === undefined) return
   const s = world.getComponent(boardId, 'Score')
   if (s) {
-    game.score = s.score
-    game.lines = s.lines
-    game.level = s.level
+    p.score = s.score
+    p.lines = s.lines
+    p.level = s.level
   }
   const gs = world.getComponent(boardId, 'GameState')
-  if (gs) {
-    game.phase = gs.phase
-  }
+  if (gs) p.phase = gs.phase
   const gm = world.getComponent(boardId, 'GameMode')
   if (gm) {
-    game.gameMode = gm.type
-    game.linesGoal = gm.linesGoal
+    p.gameMode = gm.type
+    p.linesGoal = gm.linesGoal
   }
   const apIds = world.query('ActivePiece')
-  if (apIds.length > 0) {
-    const ap = world.getComponent(apIds[0], 'ActivePiece')
-    game.activePieceId = ap ? ap.pieceId : null
-  } else {
-    game.activePieceId = null
-  }
+  p.activePieceId = apIds.length > 0
+    ? (world.getComponent(apIds[0], 'ActivePiece')?.pieceId ?? null)
+    : null
 }
 
 // Game loop
@@ -168,9 +189,11 @@ const startGameLoop = () => {
       accumulator += delta
       while (accumulator >= TICK_MS) {
         accumulator -= TICK_MS
-        world.update()
+        for (let i = 0; i < playerCount.value; i++) {
+          if (worlds[i]) worlds[i].update()
+        }
       }
-      readWorldState()
+      for (let i = 0; i < playerCount.value; i++) readWorldState(i)
     }
     gameAnimId = requestAnimationFrame(loop)
   }
@@ -186,12 +209,36 @@ const stopReplay = () => {
   replaying.value = false
 }
 
-const startGame = (settings = {}) => {
+const destroyWorlds = () => {
+  for (let i = 0; i < worlds.length; i++) {
+    if (worlds[i]?.destroy) worlds[i].destroy()
+    worlds[i] = null
+  }
+}
+
+const createWorlds = (settings, pc) => {
+  destroyWorlds()
+  const baseOpts = { ...settings, visualHeight: VISUAL_HEIGHT }
+  if (pc === 2) {
+    worlds[0] = createGame(canvasRefs[0].value, { ...baseOpts, keyMap: MULTIPLAYER_P1_KEYS, handleRestart: false })
+    worlds[1] = createGame(canvasRefs[1].value, { ...baseOpts, keyMap: MULTIPLAYER_P2_KEYS, handleRestart: false })
+  } else {
+    worlds[0] = createGame(canvasRefs[0].value, { ...baseOpts, keyMap: currentKeyMap.value })
+    worlds[1] = null
+  }
+  isPlayWorld = true
+  startGameLoop()
+}
+
+const startGame = async (settings = {}) => {
   stopReplay()
-  const { seed, boardHeight = 24, gravityMode = 'normal', manualShake = false, shakeAnimation = false, gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0 } = settings
+  const { seed, playerCount: rawPc = 1, boardHeight = 24, gravityMode = 'normal', manualShake = false, shakeAnimation = false, gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0 } = settings
+  const pc = Number(rawPc) || 1
+
   const sameConfig =
-    world &&
+    worlds[0] &&
     isPlayWorld &&
+    pc === currentSettings.playerCount &&
     boardHeight === currentSettings.boardHeight &&
     gravityMode === currentSettings.gravityMode &&
     manualShake === currentSettings.manualShake &&
@@ -200,13 +247,19 @@ const startGame = (settings = {}) => {
     startLevel === currentSettings.startLevel &&
     garbageHeight === currentSettings.garbageHeight &&
     sparsity === currentSettings.sparsity
+
+  Object.assign(currentSettings, { playerCount: pc, boardHeight, gravityMode, manualShake, shakeAnimation, gameMode, startLevel, garbageHeight, sparsity })
+
   if (sameConfig) {
-    world.restart(seed)
+    for (let i = 0; i < pc; i++) worlds[i].restart(seed)
+  } else if (pc !== playerCount.value) {
+    // Player count changed — need DOM to update before we can grab canvas refs
+    playerCount.value = pc
+    await nextTick()
+    createWorlds(settings, pc)
   } else {
-    world = createGame(canvas.value, { ...settings, keyMap: currentKeyMap.value, visualHeight: VISUAL_HEIGHT })
-    Object.assign(currentSettings, { boardHeight, gravityMode, manualShake, shakeAnimation, gameMode, startLevel, garbageHeight, sparsity })
-    isPlayWorld = true
-    startGameLoop()
+    playerCount.value = pc
+    createWorlds(settings, pc)
   }
 }
 
@@ -225,17 +278,17 @@ const onNewGameSubmit = (data) => {
 
 const onNewGameCancel = () => { dialogs.newGame = false }
 
-// State dialog
+// State dialog (P1 only)
 const copyState = () => {
-  if (!world) return
-  const json = JSON.stringify(world.exportState(), null, 2)
+  if (!worlds[0]) return
+  const json = JSON.stringify(worlds[0].exportState(), null, 2)
   navigator.clipboard.writeText(json)
 }
 
 const showState = () => {
-  if (!world) return
+  if (!worlds[0]) return
   paused.value = true
-  stateJson.value = JSON.stringify(world.exportState(), null, 2)
+  stateJson.value = JSON.stringify(worlds[0].exportState(), null, 2)
   dialogs.state = true
 }
 
@@ -244,12 +297,12 @@ const closeState = () => {
   paused.value = false
 }
 
-// Replay
+// Replay (P1 only)
 const getFullRecording = () => {
-  if (!world) return null
-  const rec = world.getRecording()
+  if (!worlds[0]) return null
+  const rec = worlds[0].getRecording()
   if (!rec) return null
-  const board = world.getComponent(world.boardId, 'Board')
+  const board = worlds[0].getComponent(worlds[0].boardId, 'Board')
   const CELL_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
   const grid = board.grid
     .filter((row) => row.some((cell) => cell !== null))
@@ -280,11 +333,13 @@ const copyReplay = () => {
 const startReplay = (recording) => {
   stopReplay()
   stopGameLoop()
+  destroyWorlds()
   currentRecording = recording
   replayPaused.value = false
   replayFastForward.value = false
   isPlayWorld = false
-  world = createGame(canvas.value, { ...recording, visualHeight: VISUAL_HEIGHT, mode: 'replay', recording })
+  playerCount.value = 1
+  worlds[0] = createGame(canvasRefs[0].value, { ...recording, visualHeight: VISUAL_HEIGHT, mode: 'replay', recording })
   replaying.value = true
 
   let lastTime = performance.now()
@@ -298,16 +353,16 @@ const startReplay = (recording) => {
 
       while (accumulator >= TICK_MS) {
         accumulator -= TICK_MS
-        const more = world.replayTick()
+        const more = worlds[0].replayTick()
         if (!more) {
-          readWorldState()
+          readWorldState(0)
           stopReplay()
           return
         }
       }
     }
 
-    readWorldState()
+    readWorldState(0)
     replayAnimId = requestAnimationFrame(replayLoop)
   }
 
@@ -316,8 +371,8 @@ const startReplay = (recording) => {
 
 const replayRestart = () => startReplay(currentRecording)
 const replayJumpToEnd = () => {
-  while (world.replayTick()) {}
-  readWorldState()
+  while (worlds[0].replayTick()) {}
+  readWorldState(0)
   stopReplay()
 }
 const replayTogglePause = () => { replayPaused.value = !replayPaused.value }
@@ -339,9 +394,11 @@ const loadReplay = async () => {
 
 // Debug
 watch(animSlowdown, () => {
-  if (!world) return
-  if (!world.debug) world.debug = {}
-  world.debug.animSlowdown = animSlowdown.value
+  for (let i = 0; i < playerCount.value; i++) {
+    if (!worlds[i]) continue
+    if (!worlds[i].debug) worlds[i].debug = {}
+    worlds[i].debug.animSlowdown = animSlowdown.value
+  }
 })
 
 const startReplayTest = (recording) => {
@@ -355,7 +412,6 @@ const onControlsSubmit = (keyMap) => {
   dialogs.controls = false
   currentKeyMap.value = keyMap
   localStorage.setItem('tetris-controls', JSON.stringify(keyMap))
-  // Force recreate on next game start by clearing sameConfig match
   isPlayWorld = false
 }
 const onControlsCancel = () => { dialogs.controls = false }
@@ -366,12 +422,32 @@ const closeDebugSettings = () => { dialogs.debug = false }
 // Init
 onMounted(() => {
   document.addEventListener('keydown', (e) => {
-    if (e.key.toLowerCase() === 'p') {
+    const key = e.key.toLowerCase()
+    if (e.key === 'Escape') {
       if (replaying.value) return
-      if (!world) return
-      const state = world.getComponent(world.boardId, 'GameState')
-      if (state.phase === 'gameover' || state.phase === 'victory') return
+      if (!worlds[0]) return
+      // In multiplayer, check if any player is still playing
+      let anyPlaying = false
+      for (let i = 0; i < playerCount.value; i++) {
+        if (!worlds[i]) continue
+        const state = worlds[i].getComponent(worlds[i].boardId, 'GameState')
+        if (state.phase !== 'gameover' && state.phase !== 'victory') { anyPlaying = true; break }
+      }
+      if (!anyPlaying) return
       paused.value = !paused.value
+    }
+    if (key === 'r' && playerCount.value === 2) {
+      // In multiplayer, R restarts when all players are done
+      let allDone = true
+      for (let i = 0; i < playerCount.value; i++) {
+        if (!worlds[i]) { allDone = false; break }
+        const state = worlds[i].getComponent(worlds[i].boardId, 'GameState')
+        if (state.phase !== 'gameover' && state.phase !== 'victory') { allDone = false; break }
+      }
+      if (allDone) {
+        const seed = worlds[0].seed
+        for (let i = 0; i < playerCount.value; i++) worlds[i].restart(seed)
+      }
     }
   })
 
@@ -393,48 +469,51 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="game-area" :style="gameAreaStyle">
-  <canvas ref="canvas"></canvas>
+  <div class="game-container">
+  <div v-for="(p, idx) in activePlayers" :key="idx" class="player-area game-area" :style="playerAreaStyle(idx)">
+    <canvas :ref="el => canvasRefs[idx].value = el"></canvas>
 
-  <!-- Left panel: HOLD, score info, controls -->
-  <div v-if="game.cellSize > 0" class="side-panel --left">
-    <div class="label">HOLD</div>
-    <table class="score-block">
-      <tr v-for="[label, value] in scoreRows" :key="label"><td>{{ label }}</td><td>{{ value }}</td></tr>
-    </table>
-    <div v-if="replaying" class="replay-controls">
-      <button @click="replayRestart">⏮</button>
-      <button @click="replayTogglePause">{{ replayPaused ? '▶' : '⏸' }}</button>
-      <button @click="replayJumpToEnd">⏭</button>
-      <button :class="{ active: replayFastForward }" @click="replayToggleFastForward">⏩</button>
+    <!-- Left panel: HOLD, score info, controls -->
+    <div v-if="p.cellSize > 0" class="side-panel --left">
+      <div class="label">HOLD</div>
+      <table class="score-block">
+        <tr v-for="[label, value] in scoreRows(p)" :key="label"><td>{{ label }}</td><td>{{ value }}</td></tr>
+      </table>
+      <div v-if="replaying && idx === 0" class="replay-controls">
+        <button @click="replayRestart">⏮</button>
+        <button @click="replayTogglePause">{{ replayPaused ? '▶' : '⏸' }}</button>
+        <button @click="replayJumpToEnd">⏭</button>
+        <button :class="{ active: replayFastForward }" @click="replayToggleFastForward">⏩</button>
+      </div>
+      <table class="controls-help">
+        <tr v-for="[key, desc] in controlRows(idx)" :key><td>{{ key }}</td><td>{{ desc }}</td></tr>
+      </table>
     </div>
-    <table class="controls-help">
-      <tr v-for="[key, desc] in controlRows" :key><td>{{ key }}</td><td>{{ desc }}</td></tr>
-    </table>
-  </div>
 
-  <!-- Right panel: NEXT -->
-  <div v-if="game.cellSize > 0" class="side-panel --right">
-    <div class="label">NEXT</div>
-  </div>
+    <!-- Right panel: NEXT -->
+    <div v-if="p.cellSize > 0" class="side-panel --right">
+      <div class="label">NEXT</div>
+    </div>
 
-  <!-- Game over overlay -->
-  <div v-if="game.phase === 'gameover' && game.cellSize > 0" class="game-over-overlay">
-    <div class="game-over-text">GAME OVER</div>
-    <div class="game-over-sub">Press R to restart</div>
-  </div>
+    <!-- Game over overlay -->
+    <div v-if="p.phase === 'gameover' && p.cellSize > 0" class="game-over-overlay">
+      <div class="game-over-text">GAME OVER</div>
+      <div class="game-over-sub">Press R to restart</div>
+    </div>
 
-  <!-- Victory overlay -->
-  <div v-if="game.phase === 'victory' && game.cellSize > 0" class="game-over-overlay">
-    <div class="game-over-text">SUCCESS!</div>
-    <div class="game-over-sub">25 Lines Cleared!</div>
-    <div class="game-over-sub">Press R to play again</div>
-  </div>
+    <!-- Victory overlay -->
+    <div v-if="p.phase === 'victory' && p.cellSize > 0" class="game-over-overlay">
+      <div class="game-over-text">SUCCESS!</div>
+      <div class="game-over-sub">25 Lines Cleared!</div>
+      <div class="game-over-sub">Press R to play again</div>
+    </div>
 
-  <!-- Pause overlay -->
-  <div v-if="paused && game.phase !== 'gameover' && game.phase !== 'victory' && game.cellSize > 0" class="game-over-overlay">
-    <div class="game-over-text">PAUSED</div>
-    <div class="game-over-sub">Press P to resume</div>
+    <!-- Pause overlay -->
+    <div v-if="paused && p.phase !== 'gameover' && p.phase !== 'victory' && p.cellSize > 0" class="game-over-overlay">
+      <div class="game-over-text">PAUSED</div>
+      <div class="game-over-sub">Press Esc to resume</div>
+    </div>
+  </div>
   </div>
 
   <!-- Debug panel -->
@@ -442,37 +521,39 @@ onMounted(() => {
     <table>
       <tr>
         <td class="debug-label">piece</td>
-        <td>{{ game.activePieceId ?? '—' }}</td>
+        <td>{{ players[0].activePieceId ?? '—' }}</td>
       </tr>
       <tr>
         <td class="debug-label">highest</td>
-        <td>{{ game.highestBlock }}</td>
+        <td>{{ players[0].highestBlock }}</td>
       </tr>
       <tr>
         <td class="debug-label">seed</td>
-        <td>{{ game.seed ?? '—' }}</td>
+        <td>{{ players[0].seed ?? '—' }}</td>
       </tr>
       <tr>
         <td class="debug-label">height</td>
-        <td>{{ game.boardHeight }}</td>
+        <td>{{ players[0].boardHeight }}</td>
       </tr>
       <tr>
         <td class="debug-label">gravity</td>
-        <td>{{ game.gravityMode }}</td>
+        <td>{{ players[0].gravityMode }}</td>
       </tr>
     </table>
   </div>
 
   <div class="btn-row">
     <button class="btn -secondary" @click="onNewGame">New Game</button>
-    <button class="btn -secondary" @click="copyState">Copy State</button>
-    <button class="btn -secondary" @click="showState">Show State</button>
-    <button class="btn -secondary" @click="copyReplay">Copy Replay</button>
-    <button class="btn -secondary" @click="showReplay">Show Replay</button>
-    <button class="btn -secondary" @click="loadReplay">Load Replay</button>
-    <button class="btn -secondary" @click="dialogs.replayTests = true">Replay Tests</button>
-    <button class="btn -secondary" @click="onControls">Controls</button>
-    <button class="btn -secondary" @click="openDebugSettings">Debug</button>
+    <template v-if="playerCount === 1">
+      <button  class="btn -secondary" @click="copyState">Copy State</button>
+      <button  class="btn -secondary" @click="showState">Show State</button>
+      <button  class="btn -secondary" @click="copyReplay">Copy Replay</button>
+      <button  class="btn -secondary" @click="showReplay">Show Replay</button>
+      <button  class="btn -secondary" @click="loadReplay">Load Replay</button>
+      <button  class="btn -secondary" @click="dialogs.replayTests = true">Replay Tests</button>
+      <button  class="btn -secondary" @click="onControls">Controls</button>
+      <button class="btn -secondary" @click="openDebugSettings">Debug</button>
+    </template>
   </div>
 
   <UnrestDialog :open="dialogs.state" title="Game State" content-class="modal__content--wide" @close="closeState">
@@ -509,5 +590,4 @@ onMounted(() => {
   <UnrestDialog :open="dialogs.newGame" title="New Game" @close="onNewGameCancel">
     <NewGameForm :defaults="newGameDefaults" @submit="onNewGameSubmit" @cancel="onNewGameCancel" />
   </UnrestDialog>
-  </div>
 </template>

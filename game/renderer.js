@@ -269,8 +269,9 @@ export class RenderSystem {
   resize(board) {
     const VISUAL_HEIGHT = 20;
     const dpr = window.devicePixelRatio || 1;
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+    const parent = this.canvas.parentElement;
+    const w = parent ? parent.clientWidth : window.innerWidth;
+    const h = parent ? parent.clientHeight : window.innerHeight;
 
     this.canvas.width = w * dpr;
     this.canvas.height = h * dpr;

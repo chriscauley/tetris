@@ -81,7 +81,7 @@ export class InputSystem {
       Object.keys(this.reverseMap).filter(c => ['left', 'right', 'softdrop'].includes(this.reverseMap[c]))
     );
 
-    document.addEventListener('keydown', e => {
+    this._onKeyDown = e => {
       if (this.preventCodes.has(e.code)) e.preventDefault();
       if (!this.keys[e.code]) {
         this.keys[e.code] = true;
@@ -89,15 +89,23 @@ export class InputSystem {
         const action = this.reverseMap[e.code];
         if (action) this.actionQueue.push(action);
       }
-    });
+    };
 
-    document.addEventListener('keyup', e => {
+    this._onKeyUp = e => {
       this.keys[e.code] = false;
       delete this.das[e.code];
       const action = this.reverseMap[e.code];
       if (action === 'softdrop') this.actionQueue.push('softdrop_release');
       if (action === 'harddrop') this.actionQueue.push('harddrop_release');
-    });
+    };
+
+    document.addEventListener('keydown', this._onKeyDown);
+    document.addEventListener('keyup', this._onKeyUp);
+  }
+
+  destroy() {
+    document.removeEventListener('keydown', this._onKeyDown);
+    document.removeEventListener('keyup', this._onKeyUp);
   }
 
   update(world) {

@@ -57,7 +57,7 @@ export class InputSystem {
 
     document.addEventListener('keydown', e => {
       if (['ArrowLeft','ArrowRight','ArrowDown','ArrowUp',
-           'Space','KeyZ','KeyX','KeyC','ShiftLeft','ShiftRight'].includes(e.code)) {
+           'Space','KeyZ','KeyX','KeyC','ShiftLeft','ShiftRight','ControlLeft'].includes(e.code)) {
         e.preventDefault();
       }
       if (!this.keys[e.code]) {
@@ -84,7 +84,7 @@ export class InputSystem {
     const map = {
       ArrowLeft: 'left', ArrowRight: 'right', ArrowDown: 'softdrop',
       ArrowUp: 'rotate_cw', KeyZ: 'rotate_ccw', KeyX: 'rotate_cw',
-      Space: 'harddrop', KeyC: 'hold', ShiftLeft: 'hold', ShiftRight: 'hold',
+      Space: 'harddrop', KeyC: 'hold', ShiftLeft: 'hold', ShiftRight: 'hold', ControlLeft: 'shake',
     };
     return map[code] || null;
   }
@@ -182,6 +182,9 @@ export class MovementSystem {
           break;
         case 'hold':
           this.holdPiece(world, boardId, pieceId, board);
+          break;
+        case 'shake':
+          board.shakeRequested = true;
           break;
       }
     }
@@ -495,18 +498,24 @@ export class LineClearSystem {
   update(world) {
     const boardId = world.query('Board', 'Score')[0];
     if (boardId === undefined) return;
+
+    const board = world.getComponent(boardId, 'Board');
+    if (board.manualShake && board.shakeRequested) {
+      board.shakeRequested = false;
+      this.performShake(world, boardId);
+    }
+
     if (world.query('ActivePiece').length > 0) return;
     const state = world.getComponent(boardId, 'GameState');
     if (state && (state.phase === 'gameover' || state.phase === 'victory')) return;
 
-    const board = world.getComponent(boardId, 'Board');
     const score = world.getComponent(boardId, 'Score');
     const table = world.getComponent(boardId, 'PieceTable');
     const gm = world.getComponent(boardId, 'GameMode');
     const startLevel = gm ? gm.startLevel : 1;
     const points = [0, 100, 300, 500, 800];
 
-    if (board.gravityMode !== 'normal') {
+    if (board.gravityMode !== 'normal' && !board.manualShake) {
       let totalLines = 0;
       board.cascadeAnimQueue = [];
       let flashGrid = board.grid.map(row => row.map(cell => cell !== null ? table.pieces[cell].type : null));
@@ -562,6 +571,62 @@ export class LineClearSystem {
         this.recyclePieceIds(world, boardId, board, table);
         this.checkVictory(world, boardId, score, gm);
       }
+    }
+  }
+
+  performShake(world, boardId) {
+    const board = world.getComponent(boardId, 'Board');
+    const table = world.getComponent(boardId, 'PieceTable');
+    const score = world.getComponent(boardId, 'Score');
+    const gm = world.getComponent(boardId, 'GameMode');
+    const startLevel = gm ? gm.startLevel : 1;
+    const points = [0, 100, 300, 500, 800];
+
+    if (board.gravityMode === 'sticky') this.mergeByType(board, table);
+
+    const preGrid = board.grid.map(row => row.map(cell => cell !== null ? table.pieces[cell].type : null));
+    const preIds = board.grid.map(row => [...row]);
+    const falls = this.compactColumns(board, table);
+    if (Object.keys(falls).length === 0) return;
+
+    board.gridVersion++;
+    const postGrid = board.grid.map(row => row.map(cell => cell !== null ? table.pieces[cell].type : null));
+    const postIds = board.grid.map(row => [...row]);
+
+    // Fall-only animation (no clearedRows → state machine skips flash)
+    board.cascadeAnimQueue.push({ flashGrid: preGrid, flashIds: preIds, clearedRows: null, grid: postGrid, ids: postIds, falls });
+
+    const clearedRows = this.clearFullRows(board);
+    if (clearedRows.length > 0) {
+      const linesCleared = clearedRows.length;
+      score.score += (points[linesCleared] || 800) * score.level;
+      score.lines += linesCleared;
+      score.level = Math.floor(score.lines / 10) + startLevel;
+
+      // Compute splice-falls (same math as normal mode)
+      const flashGrid = postGrid;
+      const flashIds = postIds;
+      const clearedSet = new Set(clearedRows);
+      const survivingOrigYs = [];
+      for (let y = 0; y < flashGrid.length; y++) {
+        if (!clearedSet.has(y)) survivingOrigYs.push(y);
+      }
+      const spliceFalls = {};
+      for (let i = 0; i < survivingOrigYs.length; i++) {
+        const postClearY = linesCleared + i;
+        const fallDist = postClearY - survivingOrigYs[i];
+        if (fallDist > 0) {
+          for (let x = 0; x < board.width; x++) {
+            if (board.grid[postClearY][x] !== null) spliceFalls[x + ',' + postClearY] = fallDist;
+          }
+        }
+      }
+      const grid = board.grid.map(row => row.map(cell => cell !== null ? table.pieces[cell].type : null));
+      const ids = board.grid.map(row => [...row]);
+      board.cascadeAnimQueue.push({ flashGrid, flashIds, clearedRows, grid, ids, falls: spliceFalls });
+
+      this.recyclePieceIds(world, boardId, board, table);
+      this.checkVictory(world, boardId, score, gm);
     }
   }
 

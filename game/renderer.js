@@ -80,6 +80,7 @@ export class RenderSystem {
       seed: world.seed,
       boardHeight: board.height,
       gravityMode: board.gravityMode,
+      manualShake: board.manualShake,
     };
 
     const ctx = this.ctx;

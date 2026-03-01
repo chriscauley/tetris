@@ -17,6 +17,7 @@ let isPlayWorld = false
 let currentSettings = {
   boardHeight: 20,
   gravityMode: 'normal',
+  manualShake: false,
   gameMode: 'a',
   startLevel: 1,
   garbageHeight: 0,
@@ -37,6 +38,7 @@ const game = reactive({
   seed: '',
   boardHeight: 20,
   gravityMode: 'normal',
+  manualShake: false,
   gameMode: 'a',
   linesGoal: null,
 })
@@ -68,15 +70,19 @@ const scoreRows = computed(() => [
   ['LEVEL', game.level],
 ])
 
-const controlRows = [
-  ['\u2190\u2192', 'Move'],
-  ['\u2191 X', 'Rotate CW'],
-  ['Z', 'Rotate CCW'],
-  ['\u2193', 'Soft Drop'],
-  ['Space', 'Hard Drop'],
-  ['C', 'Hold'],
-  ['P', 'Pause'],
-]
+const controlRows = computed(() => {
+  const rows = [
+    ['\u2190\u2192', 'Move'],
+    ['\u2191 X', 'Rotate CW'],
+    ['Z', 'Rotate CCW'],
+    ['\u2193', 'Soft Drop'],
+    ['Space', 'Hard Drop'],
+    ['C', 'Hold'],
+    ['P', 'Pause'],
+  ]
+  if (game.gravityMode !== 'normal' && game.manualShake) rows.push(['Ctrl', 'Shake'])
+  return rows
+})
 
 const gameAreaStyle = computed(() => ({
   '--cell-size': game.cellSize + 'px',
@@ -96,6 +102,7 @@ const readWorldState = () => {
     game.seed = ui.seed ?? ''
     game.boardHeight = ui.boardHeight ?? 24
     game.gravityMode = ui.gravityMode ?? 'normal'
+    game.manualShake = ui.manualShake ?? false
   }
   const boardId = world.query('Board', 'Score', 'GameState')[0]
   if (boardId === undefined) return
@@ -162,12 +169,13 @@ const stopReplay = () => {
 
 const startGame = (settings = {}) => {
   stopReplay()
-  const { seed, boardHeight = 24, gravityMode = 'normal', gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0 } = settings
+  const { seed, boardHeight = 24, gravityMode = 'normal', manualShake = false, gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0 } = settings
   const sameConfig =
     world &&
     isPlayWorld &&
     boardHeight === currentSettings.boardHeight &&
     gravityMode === currentSettings.gravityMode &&
+    manualShake === currentSettings.manualShake &&
     gameMode === currentSettings.gameMode &&
     startLevel === currentSettings.startLevel &&
     garbageHeight === currentSettings.garbageHeight &&
@@ -176,7 +184,7 @@ const startGame = (settings = {}) => {
     world.restart(seed)
   } else {
     world = createGame(canvas.value, { ...settings, visualHeight: VISUAL_HEIGHT })
-    Object.assign(currentSettings, { boardHeight, gravityMode, gameMode, startLevel, garbageHeight, sparsity })
+    Object.assign(currentSettings, { boardHeight, gravityMode, manualShake, gameMode, startLevel, garbageHeight, sparsity })
     isPlayWorld = true
     startGameLoop()
   }

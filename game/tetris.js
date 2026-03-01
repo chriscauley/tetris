@@ -16,7 +16,7 @@ const decodeCell = (ch) => {
   return i >= 0 ? i : null;
 }
 
-export const createGame = (canvas, { boardWidth = 10, boardHeight = 24, seed, mode = 'play', recording, gravityMode = 'normal', cascadeGravity, visualHeight = 20, gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0 } = {}) => {
+export const createGame = (canvas, { boardWidth = 10, boardHeight = 24, seed, mode = 'play', recording, gravityMode = 'normal', cascadeGravity, visualHeight = 20, gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0, manualShake = false } = {}) => {
   const resolvedGravityMode = gravityMode !== 'normal' ? gravityMode : (cascadeGravity ? 'cascade' : 'normal');
   const rng = seedrandom(seed, { state: true });
   const world = new World();
@@ -24,7 +24,7 @@ export const createGame = (canvas, { boardWidth = 10, boardHeight = 24, seed, mo
 
   const boardId = world.createEntity();
   const linesGoal = gameMode === 'b' ? 25 : null;
-  world.addComponent(boardId, 'Board', Components.Board(boardWidth, boardHeight, resolvedGravityMode, visualHeight));
+  world.addComponent(boardId, 'Board', Components.Board(boardWidth, boardHeight, resolvedGravityMode, visualHeight, manualShake));
   world.addComponent(boardId, 'Score', Components.Score(startLevel));
   world.addComponent(boardId, 'GameState', Components.GameState());
   world.addComponent(boardId, 'NextQueue', Components.NextQueue(rng));
@@ -96,6 +96,7 @@ export const createGame = (canvas, { boardWidth = 10, boardHeight = 24, seed, mo
     const board = world.getComponent(boardId, 'Board');
     rec.boardHeight = board.height;
     rec.gravityMode = board.gravityMode;
+    rec.manualShake = board.manualShake;
     const gm = world.getComponent(boardId, 'GameMode');
     if (gm) {
       rec.gameMode = gm.type;
@@ -138,6 +139,7 @@ export const createGame = (canvas, { boardWidth = 10, boardHeight = 24, seed, mo
             visualHeight: data.visualHeight,
             grid,
             gravityMode: data.gravityMode,
+            manualShake: data.manualShake,
           };
         } else {
           entity[name] = structuredClone(data);
@@ -172,6 +174,8 @@ export const createGame = (canvas, { boardWidth = 10, boardHeight = 24, seed, mo
             visualHeight: data.visualHeight || 20,
             grid,
             gravityMode: data.gravityMode || (data.cascadeGravity ? 'cascade' : 'normal'),
+            manualShake: data.manualShake || false,
+            shakeRequested: false,
             cascadeAnimQueue: [],
             cascadeAnim: null,
             gridVersion: 0,

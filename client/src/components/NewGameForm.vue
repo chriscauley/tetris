@@ -39,6 +39,7 @@ const gravityOptions = [
     <FormKit type="select" name="boardHeight" label="Board Height" number :options="range(15, 50)" />
     <FormKit type="text" name="seed" label="Seed" placeholder="Leave blank for random" />
     <FormKit type="select" name="gravityMode" label="Gravity" :options="gravityOptions" />
+    <FormKit v-if="form.gravityMode !== 'normal'" type="checkbox" name="manualShake" label="Manual Shake" />
   </FormKit>
   <div class="modal__actions">
     <button class="btn -secondary" type="button" @click="$emit('cancel')">Cancel</button>

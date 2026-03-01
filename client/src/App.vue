@@ -22,6 +22,7 @@ let currentSettings = {
   boardHeight: 20,
   gravityMode: 'normal',
   manualShake: false,
+  shakeAnimation: false,
   gameMode: 'a',
   startLevel: 1,
   garbageHeight: 0,
@@ -174,13 +175,14 @@ const stopReplay = () => {
 
 const startGame = (settings = {}) => {
   stopReplay()
-  const { seed, boardHeight = 24, gravityMode = 'normal', manualShake = false, gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0 } = settings
+  const { seed, boardHeight = 24, gravityMode = 'normal', manualShake = false, shakeAnimation = false, gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0 } = settings
   const sameConfig =
     world &&
     isPlayWorld &&
     boardHeight === currentSettings.boardHeight &&
     gravityMode === currentSettings.gravityMode &&
     manualShake === currentSettings.manualShake &&
+    shakeAnimation === currentSettings.shakeAnimation &&
     gameMode === currentSettings.gameMode &&
     startLevel === currentSettings.startLevel &&
     garbageHeight === currentSettings.garbageHeight &&
@@ -189,7 +191,7 @@ const startGame = (settings = {}) => {
     world.restart(seed)
   } else {
     world = createGame(canvas.value, { ...settings, visualHeight: VISUAL_HEIGHT })
-    Object.assign(currentSettings, { boardHeight, gravityMode, manualShake, gameMode, startLevel, garbageHeight, sparsity })
+    Object.assign(currentSettings, { boardHeight, gravityMode, manualShake, shakeAnimation, gameMode, startLevel, garbageHeight, sparsity })
     isPlayWorld = true
     startGameLoop()
   }

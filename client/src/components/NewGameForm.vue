@@ -46,6 +46,7 @@ const levelOptions = [
     <FormKit type="text" name="seed" label="Seed" placeholder="Leave blank for random" />
     <FormKit type="select" name="gravityMode" label="Gravity" :options="gravityOptions" />
     <FormKit v-if="form.gravityMode !== 'normal'" type="checkbox" name="manualShake" label="Manual Shake" />
+    <FormKit v-if="form.manualShake" type="checkbox" name="shakeAnimation" label="Shake Animation" />
   </FormKit>
   <div class="modal__actions">
     <button class="btn -secondary" type="button" @click="$emit('cancel')">Cancel</button>

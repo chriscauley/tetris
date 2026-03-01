@@ -580,6 +580,7 @@ export class LineClearSystem {
     if (board.gravityMode !== 'normal' && !board.manualShake) {
       let totalLines = 0;
       board.cascadeAnimQueue = [];
+      if (board.gravityMode === 'sticky') this.mergeByType(board, table);
       let flashGrid = board.grid.map(row => row.map(cell => cell !== null ? table.pieces[cell].type : null));
       let flashIds = board.grid.map(row => [...row]);
       let clearedRows = this.clearFullRows(board);
@@ -603,6 +604,7 @@ export class LineClearSystem {
         this.checkVictory(world, boardId, score, gm);
       }
     } else {
+      if (board.gravityMode === 'sticky') this.mergeByType(board, table);
       const flashGrid = board.grid.map(row => row.map(cell => cell !== null ? table.pieces[cell].type : null));
       const flashIds = board.grid.map(row => [...row]);
       const clearedRows = this.clearFullRows(board);

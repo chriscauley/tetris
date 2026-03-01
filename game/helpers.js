@@ -23,7 +23,7 @@ export const shuffledBag = (rng) => {
   return bag;
 }
 
-export const getDropInterval = (level) => Math.max(3, 63 - (level - 1) * 5)
+export const getDropInterval = (level) => level === 0 ? Infinity : Math.max(3, 63 - (level - 1) * 5)
 
 export const fillGarbage = (board, pieceTable, rng, garbageHeight, sparsity = 0) => {
   const totalRows = board.grid.length;

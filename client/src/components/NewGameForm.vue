@@ -23,12 +23,18 @@ const gravityOptions = [
   { value: 'cascade', label: 'Cascade' },
   { value: 'sticky', label: 'Sticky' },
 ]
+
+const levelOptions = [
+  { value: 0, label: '0 (turn based play)' },
+  ...range(1, 10),
+]
+
 </script>
 
 <template>
   <FormKit v-model="form" type="form" :actions="false" @submit="onSubmit">
     <FormKit type="select" name="gameMode" label="Mode" autofocus :options="gameModeOptions" />
-    <FormKit type="select" name="startLevel" label="Starting Level" number :options="range(1, 10)" />
+    <FormKit type="select" name="startLevel" label="Starting Level" number :options="levelOptions" />
     <fieldset v-if="form.gameMode === 'b'">
       <legend>B-Type Options</legend>
       <div class="grid gap-4">

@@ -536,7 +536,7 @@ export class LineClearSystem {
       if (totalLines > 0) {
         board.gridVersion++;
         score.lines += totalLines;
-        score.level = Math.floor(score.lines / 10) + startLevel;
+        if (startLevel > 0) score.level = Math.floor(score.lines / 10) + startLevel;
         this.recyclePieceIds(world, boardId, board, table);
         this.checkVictory(world, boardId, score, gm);
       }
@@ -549,7 +549,7 @@ export class LineClearSystem {
         const linesCleared = clearedRows.length;
         score.score += (points[linesCleared] || 800) * score.level;
         score.lines += linesCleared;
-        score.level = Math.floor(score.lines / 10) + startLevel;
+        if (startLevel > 0) score.level = Math.floor(score.lines / 10) + startLevel;
         const clearedSet = new Set(clearedRows);
         const survivingOrigYs = [];
         for (let y = 0; y < flashGrid.length; y++) {
@@ -601,7 +601,7 @@ export class LineClearSystem {
       const linesCleared = clearedRows.length;
       score.score += (points[linesCleared] || 800) * score.level;
       score.lines += linesCleared;
-      score.level = Math.floor(score.lines / 10) + startLevel;
+      if (startLevel > 0) score.level = Math.floor(score.lines / 10) + startLevel;
 
       // Compute splice-falls (same math as normal mode)
       const flashGrid = postGrid;

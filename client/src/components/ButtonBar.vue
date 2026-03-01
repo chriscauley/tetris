@@ -17,6 +17,7 @@ defineEmits([
   'login',
   'register',
   'logout',
+  'menu',
 ])
 </script>
 
@@ -30,6 +31,7 @@ defineEmits([
       <button class="btn -secondary" @click="$emit('login')">Log In</button>
       <button class="btn -secondary" @click="$emit('register')">Sign Up</button>
     </template>
+    <button class="btn -secondary" @click="$emit('menu')">Menu</button>
     <button class="btn -secondary" @click="$emit('new-game')">New Game</button>
     <template v-if="playerCount === 1">
       <button class="btn -secondary" @click="$emit('copy-state')">Copy State</button>

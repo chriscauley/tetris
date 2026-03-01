@@ -18,7 +18,8 @@
     "@tanstack/vue-query": "^5.92.9",
     "lodash": "^4.17.23",
     "seedrandom": "^3.0.5",
-    "vue": "^3.5.29"
+    "vue": "^3.5.29",
+    "vue-router": "^5.0.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -3,6 +3,7 @@ import { reactive } from 'vue'
 
 const props = defineProps({
   defaults: Object,
+  showCancel: { type: Boolean, default: true },
 })
 
 const emit = defineEmits(['submit', 'cancel'])
@@ -46,7 +47,7 @@ const levelOptions = [{ value: 0, label: '0 (turn based play)' }, ...range(1, 10
     <FormKit v-if="form.manualShake" type="checkbox" name="shakeAnimation" label="Shake Animation" />
   </FormKit>
   <div class="modal__actions">
-    <button class="btn -secondary" type="button" @click="$emit('cancel')">Cancel</button>
+    <button v-if="showCancel" class="btn -secondary" type="button" @click="$emit('cancel')">Cancel</button>
     <button class="btn -primary" @click="onSubmit">Play</button>
   </div>
 </template>

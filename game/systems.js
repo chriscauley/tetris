@@ -336,16 +336,16 @@ export class LockSystem {
 
 export class LineClearSystem {
   clearFullRows(board) {
-    let linesCleared = 0;
+    const clearedRows = [];
     for (let y = board.grid.length - 1; y >= 0; y--) {
       if (board.grid[y].every(cell => cell !== null)) {
+        clearedRows.push(y - clearedRows.length);
         board.grid.splice(y, 1);
         board.grid.unshift(Array(board.width).fill(null));
-        linesCleared++;
         y++;
       }
     }
-    return linesCleared;
+    return clearedRows;
   }
 
   findConnectedGroups(board) {
@@ -509,20 +509,20 @@ export class LineClearSystem {
     if (board.gravityMode !== 'normal') {
       let totalLines = 0;
       board.cascadeAnimQueue = [];
-      let linesCleared = this.clearFullRows(board);
-      while (linesCleared > 0) {
-        score.score += (points[linesCleared] || 800) * score.level;
-        totalLines += linesCleared;
+      let flashGrid = board.grid.map(row => row.map(cell => cell !== null ? table.pieces[cell].type : null));
+      let flashIds = board.grid.map(row => [...row]);
+      let clearedRows = this.clearFullRows(board);
+      while (clearedRows.length > 0) {
+        score.score += (points[clearedRows.length] || 800) * score.level;
+        totalLines += clearedRows.length;
         if (board.gravityMode === 'sticky') this.mergeByType(board, table);
         const falls = this.compactColumns(board, table);
-        if (Object.keys(falls).length > 0) {
-          const snapshot = board.grid.map(row =>
-            row.map(cell => cell !== null ? table.pieces[cell].type : null)
-          );
-          const ids = board.grid.map(row => [...row]);
-          board.cascadeAnimQueue.push({ grid: snapshot, ids, falls });
-        }
-        linesCleared = this.clearFullRows(board);
+        const grid = board.grid.map(row => row.map(cell => cell !== null ? table.pieces[cell].type : null));
+        const ids = board.grid.map(row => [...row]);
+        board.cascadeAnimQueue.push({ flashGrid, flashIds, clearedRows, grid, ids, falls });
+        flashGrid = grid;
+        flashIds = ids;
+        clearedRows = this.clearFullRows(board);
       }
       if (totalLines > 0) {
         board.gridVersion++;
@@ -532,12 +532,33 @@ export class LineClearSystem {
         this.checkVictory(world, boardId, score, gm);
       }
     } else {
-      const linesCleared = this.clearFullRows(board);
-      if (linesCleared > 0) {
+      const flashGrid = board.grid.map(row => row.map(cell => cell !== null ? table.pieces[cell].type : null));
+      const flashIds = board.grid.map(row => [...row]);
+      const clearedRows = this.clearFullRows(board);
+      if (clearedRows.length > 0) {
         board.gridVersion++;
+        const linesCleared = clearedRows.length;
         score.score += (points[linesCleared] || 800) * score.level;
         score.lines += linesCleared;
         score.level = Math.floor(score.lines / 10) + startLevel;
+        const clearedSet = new Set(clearedRows);
+        const survivingOrigYs = [];
+        for (let y = 0; y < flashGrid.length; y++) {
+          if (!clearedSet.has(y)) survivingOrigYs.push(y);
+        }
+        const falls = {};
+        for (let i = 0; i < survivingOrigYs.length; i++) {
+          const postClearY = linesCleared + i;
+          const fallDist = postClearY - survivingOrigYs[i];
+          if (fallDist > 0) {
+            for (let x = 0; x < board.width; x++) {
+              if (board.grid[postClearY][x] !== null) falls[x + ',' + postClearY] = fallDist;
+            }
+          }
+        }
+        const grid = board.grid.map(row => row.map(cell => cell !== null ? table.pieces[cell].type : null));
+        const ids = board.grid.map(row => [...row]);
+        board.cascadeAnimQueue = [{ flashGrid, flashIds, clearedRows, grid, ids, falls }];
         this.recyclePieceIds(world, boardId, board, table);
         this.checkVictory(world, boardId, score, gm);
       }

@@ -109,9 +109,9 @@ export class RenderSystem {
       // Grid lines
       this._drawGridLines(ctx, ox, oy, board, cs);
 
-      // Draw from animation snapshot grid
-      const snapGrid = anim.grid;
-      const snapIds = anim.ids;
+      // Draw from appropriate snapshot based on phase
+      const snapGrid = anim.phase === 'flash' ? anim.flashGrid : anim.grid;
+      const snapIds = anim.phase === 'flash' ? anim.flashIds : anim.ids;
       for (let y = board.bufferHeight; y < snapGrid.length; y++) {
         for (let x = 0; x < board.width; x++) {
           const type = snapGrid[y][x];
@@ -135,6 +135,16 @@ export class RenderSystem {
               cs, PIECE_COLORS[type], nb
             );
           }
+        }
+      }
+
+      // Flash overlay on cleared rows
+      if (anim.phase === 'flash' && anim.clearedRows) {
+        const t = anim.timer / anim.flashDuration;
+        const alpha = 0.8 * (1 - t);
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+        for (const row of anim.clearedRows) {
+          ctx.fillRect(ox, oy + (row - board.bufferHeight) * cs, board.width * cs, cs);
         }
       }
     } else {
@@ -286,17 +296,24 @@ export class RenderSystem {
   }
 
   advanceCascadeAnim(board, slowdown) {
+    const flashDur = Math.round(10 * slowdown);
     const fallDur = Math.round(8 * slowdown);
     const pauseDur = Math.round(4 * slowdown);
+    const startStep = (step) => {
+      if (step.clearedRows && step.clearedRows.length > 0) {
+        board.cascadeAnim = { ...step, phase: 'flash', timer: 0, flashDuration: flashDur, fallDuration: fallDur };
+      } else {
+        board.cascadeAnim = { ...step, phase: 'fall', timer: 0, fallDuration: fallDur };
+      }
+    };
     if (!board.cascadeAnim && board.cascadeAnimQueue.length > 0) {
-      const step = board.cascadeAnimQueue.shift();
-      board.cascadeAnim = { ...step, phase: 'fall', timer: 0, fallDuration: fallDur };
+      startStep(board.cascadeAnimQueue.shift());
       return;
     }
     if (!board.cascadeAnim) return;
     const anim = board.cascadeAnim;
     anim.timer++;
-    if (anim.phase === 'fall' && anim.timer >= anim.fallDuration) {
+    const endOrPause = () => {
       if (board.cascadeAnimQueue.length > 0) {
         anim.phase = 'pause';
         anim.timer = 0;
@@ -304,9 +321,18 @@ export class RenderSystem {
       } else {
         board.cascadeAnim = null;
       }
+    };
+    if (anim.phase === 'flash' && anim.timer >= anim.flashDuration) {
+      if (Object.keys(anim.falls).length > 0) {
+        anim.phase = 'fall';
+        anim.timer = 0;
+      } else {
+        endOrPause();
+      }
+    } else if (anim.phase === 'fall' && anim.timer >= anim.fallDuration) {
+      endOrPause();
     } else if (anim.phase === 'pause' && anim.timer >= anim.pauseDuration) {
-      const step = board.cascadeAnimQueue.shift();
-      board.cascadeAnim = { ...step, phase: 'fall', timer: 0, fallDuration: fallDur };
+      startStep(board.cascadeAnimQueue.shift());
     }
   }
 

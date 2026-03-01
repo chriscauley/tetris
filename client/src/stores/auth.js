@@ -1,14 +1,8 @@
 import { computed } from 'vue'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/vue-query'
+import { fetchJson } from './api.js'
 
 const USER_KEY = ['auth', 'user']
-
-const fetchJson = async (url, opts) => {
-  const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.error || 'Request failed')
-  return data
-}
 
 export const useUser = () => {
   const { data, isLoading } = useQuery({

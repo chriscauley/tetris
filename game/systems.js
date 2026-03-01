@@ -385,44 +385,105 @@ export class LineClearSystem {
 
   compactColumns(board, table) {
     const cellDrops = {};
-    let anyMoved = true;
-    while (anyMoved) {
-      anyMoved = false;
+    for (;;) {
       const groups = this.findConnectedGroups(board);
-      // Sort bottom-first (highest maxY first) for faster convergence
-      groups.sort((a, b) => {
-        let maxA = 0, maxB = 0;
-        for (const c of a) if (c.y > maxA) maxA = c.y;
-        for (const c of b) if (c.y > maxB) maxB = c.y;
-        return maxB - maxA;
-      });
-      for (const group of groups) {
-        // Garbage blocks are pinned and never fall
-        const pieceId = board.grid[group[0].y][group[0].x];
-        if (table && table.pieces[pieceId] && table.pieces[pieceId].type === G) continue;
-        const groupCellSet = new Set(group.map(c => c.x + ',' + c.y));
+
+      // Map each cell position to its group index
+      const cellToGroup = {};
+      for (let gi = 0; gi < groups.length; gi++) {
+        for (const cell of groups[gi]) cellToGroup[cell.x + ',' + cell.y] = gi;
+      }
+
+      // Identify ground-supported groups + build support graph
+      const supported = new Set();
+      const restsOn = {};
+      for (let gi = 0; gi < groups.length; gi++) {
+        const pieceId = board.grid[groups[gi][0].y][groups[gi][0].x];
+        if (table && table.pieces[pieceId] && table.pieces[pieceId].type === G) {
+          supported.add(gi);
+          continue;
+        }
+        restsOn[gi] = new Set();
+        for (const cell of groups[gi]) {
+          if (cell.y + 1 >= board.grid.length) {
+            supported.add(gi);
+          } else {
+            const belowGroup = cellToGroup[cell.x + ',' + (cell.y + 1)];
+            if (belowGroup !== undefined && belowGroup !== gi) restsOn[gi].add(belowGroup);
+          }
+        }
+      }
+
+      // Propagate support upward
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (let gi = 0; gi < groups.length; gi++) {
+          if (supported.has(gi) || !restsOn[gi]) continue;
+          for (const dep of restsOn[gi]) {
+            if (supported.has(dep)) { supported.add(gi); changed = true; break; }
+          }
+        }
+      }
+
+      // Collect unsupported non-garbage groups
+      const unsupported = [];
+      for (let gi = 0; gi < groups.length; gi++) {
+        if (!supported.has(gi)) unsupported.push(gi);
+      }
+      if (unsupported.length === 0) break;
+
+      // Find islands: connected components among unsupported via support edges
+      const unsupportedSet = new Set(unsupported);
+      const adj = {};
+      for (const gi of unsupported) adj[gi] = new Set();
+      for (const gi of unsupported) {
+        if (!restsOn[gi]) continue;
+        for (const dep of restsOn[gi]) {
+          if (unsupportedSet.has(dep)) { adj[gi].add(dep); adj[dep].add(gi); }
+        }
+      }
+      const visited = new Set();
+      const islands = [];
+      for (const gi of unsupported) {
+        if (visited.has(gi)) continue;
+        const island = [];
+        const stack = [gi];
+        visited.add(gi);
+        while (stack.length > 0) {
+          const node = stack.pop();
+          island.push(node);
+          for (const neighbor of adj[node]) {
+            if (!visited.has(neighbor)) { visited.add(neighbor); stack.push(neighbor); }
+          }
+        }
+        islands.push(island);
+      }
+
+      // Drop each island
+      let anyMoved = false;
+      for (const island of islands) {
+        const combinedCells = [];
+        for (const gi of island) {
+          for (const cell of groups[gi]) combinedCells.push(cell);
+        }
+        const combinedSet = new Set(combinedCells.map(c => c.x + ',' + c.y));
         let minDrop = board.grid.length;
-        for (const cell of group) {
+        for (const cell of combinedCells) {
           let drop = 0;
           for (let y = cell.y + 1; y < board.grid.length; y++) {
-            if (board.grid[y][cell.x] !== null && !groupCellSet.has(cell.x + ',' + y)) {
-              break;
-            }
+            if (board.grid[y][cell.x] !== null && !combinedSet.has(cell.x + ',' + y)) break;
             drop++;
           }
           minDrop = Math.min(minDrop, drop);
         }
         if (minDrop > 0) {
           anyMoved = true;
-          const cellData = group.map(c => ({
-            x: c.x, y: c.y,
-            id: board.grid[c.y][c.x],
+          const cellData = combinedCells.map(c => ({
+            x: c.x, y: c.y, id: board.grid[c.y][c.x],
             prevDrop: cellDrops[c.x + ',' + c.y] || 0,
           }));
-          for (const cell of cellData) {
-            delete cellDrops[cell.x + ',' + cell.y];
-            board.grid[cell.y][cell.x] = null;
-          }
+          for (const cell of cellData) { delete cellDrops[cell.x + ',' + cell.y]; board.grid[cell.y][cell.x] = null; }
           for (const cell of cellData) {
             const newY = cell.y + minDrop;
             board.grid[newY][cell.x] = cell.id;
@@ -430,6 +491,7 @@ export class LineClearSystem {
           }
         }
       }
+      if (!anyMoved) break;
     }
     return cellDrops;
   }

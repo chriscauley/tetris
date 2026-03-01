@@ -16,7 +16,7 @@ const decodeCell = (ch) => {
   return i >= 0 ? i : null;
 }
 
-export const createGame = (canvas, { boardWidth = 10, boardHeight = 24, seed, mode = 'play', recording, gravityMode = 'normal', cascadeGravity, visualHeight = 20, gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0, manualShake = false, shakeAnimation = false } = {}) => {
+export const createGame = (canvas, { boardWidth = 10, boardHeight = 24, seed, mode = 'play', recording, gravityMode = 'normal', cascadeGravity, visualHeight = 20, gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0, manualShake = false, shakeAnimation = false, keyMap } = {}) => {
   const resolvedGravityMode = gravityMode !== 'normal' ? gravityMode : (cascadeGravity ? 'cascade' : 'normal');
   const rng = seedrandom(seed, { state: true });
   const world = new World();
@@ -47,7 +47,7 @@ export const createGame = (canvas, { boardWidth = 10, boardHeight = 24, seed, mo
     replaySystem = new ReplaySystem(recording.frames);
     world.addSystem(replaySystem);
   } else {
-    world.addSystem(new InputSystem());
+    world.addSystem(new InputSystem(keyMap));
     recorderSystem = new RecorderSystem();
     world.addSystem(recorderSystem);
   }

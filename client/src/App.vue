@@ -1,8 +1,10 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { createGame } from '@game/tetris.js'
+import { DEFAULT_KEY_MAP } from '@game/systems.js'
 import UnrestDialog from './components/UnrestDialog.vue'
 import NewGameForm from './components/NewGameForm.vue'
+import ControlsForm from './components/ControlsForm.vue'
 import DebugForm from './components/DebugForm.vue'
 
 const replayTests = Object.entries(
@@ -19,6 +21,7 @@ let gameAnimId = null
 let replayAnimId = null
 let isPlayWorld = false
 let currentRecording = null
+const currentKeyMap = ref(null)
 let currentSettings = {
   boardHeight: 20,
   gravityMode: 'normal',
@@ -58,6 +61,7 @@ const replayFastForward = ref(false)
 const animSlowdown = ref(1)
 const dialogs = reactive({
   newGame: false,
+  controls: false,
   state: false,
   replay: false,
   debug: false,
@@ -79,17 +83,23 @@ const scoreRows = computed(() => [
   ['LEVEL', game.level],
 ])
 
+const CODE_DISPLAY_SHORT = {
+  ArrowLeft: '\u2190', ArrowRight: '\u2192', ArrowUp: '\u2191', ArrowDown: '\u2193',
+  Space: 'Space', ShiftLeft: 'Shift', ShiftRight: 'Shift',
+  ControlLeft: 'Ctrl', ControlRight: 'Ctrl',
+}
+const shortCode = (c) => CODE_DISPLAY_SHORT[c] || c.replace(/^Key/, '').replace(/^Digit/, '')
+
 const controlRows = computed(() => {
+  const km = currentKeyMap.value || DEFAULT_KEY_MAP
+  const row = (action, label) => [km[action]?.map(shortCode).join(' ') || '', label]
   const rows = [
-    ['\u2190\u2192', 'Move'],
-    ['\u2191 X', 'Rotate CW'],
-    ['Z', 'Rotate CCW'],
-    ['\u2193', 'Soft Drop'],
-    ['Space', 'Hard Drop'],
-    ['C', 'Hold'],
-    ['P', 'Pause'],
+    row('left', 'Move Left'), row('right', 'Move Right'),
+    row('rotate_cw', 'Rotate CW'), row('rotate_ccw', 'Rotate CCW'),
+    row('softdrop', 'Soft Drop'), row('harddrop', 'Hard Drop'),
+    row('hold', 'Hold'), ['P', 'Pause'],
   ]
-  if (game.gravityMode !== 'normal' && game.manualShake) rows.push(['Ctrl', 'Shake'])
+  if (game.gravityMode !== 'normal' && game.manualShake) rows.push(row('shake', 'Shake'))
   return rows
 })
 
@@ -193,7 +203,7 @@ const startGame = (settings = {}) => {
   if (sameConfig) {
     world.restart(seed)
   } else {
-    world = createGame(canvas.value, { ...settings, visualHeight: VISUAL_HEIGHT })
+    world = createGame(canvas.value, { ...settings, keyMap: currentKeyMap.value, visualHeight: VISUAL_HEIGHT })
     Object.assign(currentSettings, { boardHeight, gravityMode, manualShake, shakeAnimation, gameMode, startLevel, garbageHeight, sparsity })
     isPlayWorld = true
     startGameLoop()
@@ -339,6 +349,17 @@ const startReplayTest = (recording) => {
   startReplay(recording)
 }
 
+// Controls dialog
+const onControls = () => { dialogs.controls = true }
+const onControlsSubmit = (keyMap) => {
+  dialogs.controls = false
+  currentKeyMap.value = keyMap
+  localStorage.setItem('tetris-controls', JSON.stringify(keyMap))
+  // Force recreate on next game start by clearing sameConfig match
+  isPlayWorld = false
+}
+const onControlsCancel = () => { dialogs.controls = false }
+
 const openDebugSettings = () => { dialogs.debug = true }
 const closeDebugSettings = () => { dialogs.debug = false }
 
@@ -353,6 +374,11 @@ onMounted(() => {
       paused.value = !paused.value
     }
   })
+
+  try {
+    const savedControls = JSON.parse(localStorage.getItem('tetris-controls'))
+    if (savedControls) currentKeyMap.value = savedControls
+  } catch {}
 
   let settings = {}
   try {
@@ -445,6 +471,7 @@ onMounted(() => {
     <button class="btn -secondary" @click="showReplay">Show Replay</button>
     <button class="btn -secondary" @click="loadReplay">Load Replay</button>
     <button class="btn -secondary" @click="dialogs.replayTests = true">Replay Tests</button>
+    <button class="btn -secondary" @click="onControls">Controls</button>
     <button class="btn -secondary" @click="openDebugSettings">Debug</button>
   </div>
 
@@ -460,6 +487,10 @@ onMounted(() => {
     <template #actions>
       <button class="btn -secondary" type="button" @click="closeReplay">Close</button>
     </template>
+  </UnrestDialog>
+
+  <UnrestDialog :open="dialogs.controls" title="Controls" @close="onControlsCancel">
+    <ControlsForm :defaults="currentKeyMap || DEFAULT_KEY_MAP" @submit="onControlsSubmit" @cancel="onControlsCancel" />
   </UnrestDialog>
 
   <UnrestDialog :open="dialogs.debug" title="Debug Settings" @close="closeDebugSettings">

@@ -47,23 +47,46 @@ export class SpawnSystem {
 
 // --- InputSystem: reads keyboard and queues actions ---
 
+export const DEFAULT_KEY_MAP = {
+  left: ['ArrowLeft'],
+  right: ['ArrowRight'],
+  softdrop: ['ArrowDown'],
+  rotate_cw: ['ArrowUp', 'KeyX'],
+  rotate_ccw: ['KeyZ'],
+  harddrop: ['Space'],
+  hold: ['KeyC', 'ShiftLeft', 'ShiftRight'],
+  shake: ['ControlLeft'],
+};
+
+const buildReverseMap = (keyMap) => {
+  const rev = {};
+  for (const [action, codes] of Object.entries(keyMap)) {
+    for (const code of codes) rev[code] = action;
+  }
+  return rev;
+};
+
 export class InputSystem {
-  constructor() {
+  constructor(keyMap) {
     this.keys = {};
     this.das = {};
     this.dasDelay = 11;
     this.dasRepeat = 3;
     this.actionQueue = [];
 
+    const km = keyMap || DEFAULT_KEY_MAP;
+    this.reverseMap = buildReverseMap(km);
+    this.preventCodes = new Set(Object.keys(this.reverseMap));
+    this.dasCodes = new Set(
+      Object.keys(this.reverseMap).filter(c => ['left', 'right', 'softdrop'].includes(this.reverseMap[c]))
+    );
+
     document.addEventListener('keydown', e => {
-      if (['ArrowLeft','ArrowRight','ArrowDown','ArrowUp',
-           'Space','KeyZ','KeyX','KeyC','ShiftLeft','ShiftRight','ControlLeft'].includes(e.code)) {
-        e.preventDefault();
-      }
+      if (this.preventCodes.has(e.code)) e.preventDefault();
       if (!this.keys[e.code]) {
         this.keys[e.code] = true;
         this.das[e.code] = { timer: 0, fired: false };
-        const action = this.mapKey(e.code);
+        const action = this.reverseMap[e.code];
         if (action) this.actionQueue.push(action);
       }
     });
@@ -71,35 +94,23 @@ export class InputSystem {
     document.addEventListener('keyup', e => {
       this.keys[e.code] = false;
       delete this.das[e.code];
-      if (e.code === 'ArrowDown') {
-        this.actionQueue.push('softdrop_release');
-      }
-      if (e.code === 'Space') {
-        this.actionQueue.push('harddrop_release');
-      }
+      const action = this.reverseMap[e.code];
+      if (action === 'softdrop') this.actionQueue.push('softdrop_release');
+      if (action === 'harddrop') this.actionQueue.push('harddrop_release');
     });
   }
 
-  mapKey(code) {
-    const map = {
-      ArrowLeft: 'left', ArrowRight: 'right', ArrowDown: 'softdrop',
-      ArrowUp: 'rotate_cw', KeyZ: 'rotate_ccw', KeyX: 'rotate_cw',
-      Space: 'harddrop', KeyC: 'hold', ShiftLeft: 'hold', ShiftRight: 'hold', ControlLeft: 'shake',
-    };
-    return map[code] || null;
-  }
-
   update(world) {
-    for (const code of ['ArrowLeft', 'ArrowRight', 'ArrowDown']) {
+    for (const code of this.dasCodes) {
       if (this.keys[code] && this.das[code]) {
         this.das[code].timer++;
         if (!this.das[code].fired && this.das[code].timer >= this.dasDelay) {
           this.das[code].fired = true;
           this.das[code].timer = 0;
-          this.actionQueue.push(this.mapKey(code));
+          this.actionQueue.push(this.reverseMap[code]);
         } else if (this.das[code].fired && this.das[code].timer >= this.dasRepeat) {
           this.das[code].timer = 0;
-          this.actionQueue.push(this.mapKey(code));
+          this.actionQueue.push(this.reverseMap[code]);
         }
       }
     }

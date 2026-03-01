@@ -82,6 +82,7 @@ export class InputSystem {
     );
 
     this._onKeyDown = e => {
+      if (this.suppressed) return;
       if (this.preventCodes.has(e.code)) e.preventDefault();
       if (!this.keys[e.code]) {
         this.keys[e.code] = true;
@@ -92,6 +93,7 @@ export class InputSystem {
     };
 
     this._onKeyUp = e => {
+      if (this.suppressed) return;
       this.keys[e.code] = false;
       delete this.das[e.code];
       const action = this.reverseMap[e.code];

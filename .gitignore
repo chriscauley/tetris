@@ -37,3 +37,7 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+# Django
+server/db.sqlite3
+server/.venv/

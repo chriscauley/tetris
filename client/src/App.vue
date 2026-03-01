@@ -6,6 +6,9 @@ import UnrestDialog from './components/UnrestDialog.vue'
 import NewGameForm from './components/NewGameForm.vue'
 import ControlsForm from './components/ControlsForm.vue'
 import DebugForm from './components/DebugForm.vue'
+import LoginForm from './components/LoginForm.vue'
+import RegisterForm from './components/RegisterForm.vue'
+import { useUser, useLogout } from './stores/auth.js'
 
 const replayTests = Object.entries(import.meta.glob('@replays/*.json', { eager: true })).map(([path, mod]) => ({
   name: path.split('/').pop().replace('.json', ''),
@@ -88,6 +91,8 @@ const replaying = ref(false)
 const replayPaused = ref(false)
 const replayFastForward = ref(false)
 const animSlowdown = ref(1)
+const { user } = useUser()
+const { mutate: logout } = useLogout()
 const dialogs = reactive({
   newGame: false,
   controls: false,
@@ -95,7 +100,10 @@ const dialogs = reactive({
   replay: false,
   debug: false,
   replayTests: false,
+  login: false,
+  register: false,
 })
+const anyDialogOpen = computed(() => Object.values(dialogs).some(Boolean))
 const newGameDefaults = ref({})
 const stateJson = ref('')
 const replayJson = ref('')
@@ -334,14 +342,12 @@ const copyState = () => {
 
 const showState = () => {
   if (!worlds[0]) return
-  paused.value = true
   stateJson.value = JSON.stringify(worlds[0].exportState(), null, 2)
   dialogs.state = true
 }
 
 const closeState = () => {
   dialogs.state = false
-  paused.value = false
 }
 
 // Replay (P1 only)
@@ -361,14 +367,12 @@ const getFullRecording = () => {
 const showReplay = () => {
   const rec = getFullRecording()
   if (!rec) return
-  paused.value = true
   replayJson.value = JSON.stringify(rec, null, 2)
   dialogs.replay = true
 }
 
 const closeReplay = () => {
   dialogs.replay = false
-  paused.value = false
 }
 
 const copyReplay = () => {
@@ -478,9 +482,33 @@ const closeDebugSettings = () => {
   dialogs.debug = false
 }
 
+const onAuthSuccess = () => {
+  dialogs.login = false
+  dialogs.register = false
+}
+
+// Pause game + suppress input while any dialog is open
+let pausedByDialog = false
+const suppressInput = (suppress) => {
+  for (const w of worlds) {
+    if (w?.inputSystem) w.inputSystem.suppressed = suppress
+  }
+}
+watch(anyDialogOpen, (open) => {
+  suppressInput(open)
+  if (open) {
+    pausedByDialog = !paused.value
+    paused.value = true
+  } else if (pausedByDialog) {
+    paused.value = false
+    pausedByDialog = false
+  }
+})
+
 // Init
 onMounted(() => {
   document.addEventListener('keydown', (e) => {
+    if (anyDialogOpen.value) return
     const key = e.key.toLowerCase()
     if (e.key === 'Escape') {
       if (replaying.value) return
@@ -623,6 +651,14 @@ onMounted(() => {
   </div>
 
   <div class="btn-row">
+    <template v-if="user">
+      <span class="text-neutral-400 text-sm font-mono self-center">{{ user.username }}</span>
+      <button class="btn -secondary" @click="logout()">Log Out</button>
+    </template>
+    <template v-else>
+      <button class="btn -secondary" @click="dialogs.login = true">Log In</button>
+      <button class="btn -secondary" @click="dialogs.register = true">Sign Up</button>
+    </template>
     <button class="btn -secondary" @click="onNewGame">New Game</button>
     <template v-if="playerCount === 1">
       <button class="btn -secondary" @click="copyState">Copy State</button>
@@ -669,5 +705,13 @@ onMounted(() => {
 
   <UnrestDialog :open="dialogs.newGame" title="New Game" @close="onNewGameCancel">
     <NewGameForm :defaults="newGameDefaults" @submit="onNewGameSubmit" @cancel="onNewGameCancel" />
+  </UnrestDialog>
+
+  <UnrestDialog :open="dialogs.login" title="Log In" @close="dialogs.login = false">
+    <LoginForm @success="onAuthSuccess" @cancel="dialogs.login = false" />
+  </UnrestDialog>
+
+  <UnrestDialog :open="dialogs.register" title="Sign Up" @close="dialogs.register = false">
+    <RegisterForm @success="onAuthSuccess" @cancel="dialogs.register = false" />
   </UnrestDialog>
 </template>

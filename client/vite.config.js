@@ -11,6 +11,9 @@ export default defineConfig({
   plugins: [vue(), vueDevTools(), tailwindcss()],
   server: {
     port: 5179,
+    proxy: {
+      '/api': 'http://127.0.0.1:8000',
+    },
   },
   resolve: {
     alias: {

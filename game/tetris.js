@@ -92,6 +92,7 @@ export const createGame = (canvas, { boardWidth = 10, boardHeight = 24, seed, mo
     if (recorderSystem) recorderSystem.reset();
   };
   world.boardId = boardId;
+  world.inputSystem = inputSystem;
 
   world.getRecording = () => {
     if (!recorderSystem) return null;

@@ -244,8 +244,8 @@ const getFullRecording = () => {
   const grid = board.grid
     .filter((row) => row.some((cell) => cell !== null))
     .map((row) => row.map((c) => (c === null ? ' ' : (CELL_CHARS[c] ?? '?'))).join(''))
-  rec.expectedGrid = grid
-  return rec
+  const { frames, ...rest } = rec
+  return { expectedGrid: grid, ...rest, frames }
 }
 
 const showReplay = () => {

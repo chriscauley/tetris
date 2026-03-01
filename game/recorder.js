@@ -21,7 +21,7 @@ export class RecorderSystem {
     if (this.ticksSinceLastAction > 0) {
       frames.push([this.ticksSinceLastAction]);
     }
-    return { seed, frames };
+    return { seed, frames: frames.map(f => f.join('|')) };
   }
 
   reset() {
@@ -31,11 +31,17 @@ export class RecorderSystem {
 }
 
 // ReplaySystem — counts down ticks, injects actions when a frame's count is reached.
+const parseFrame = (f) => {
+  if (Array.isArray(f)) return f;
+  const parts = f.split('|');
+  return [Number(parts[0]), ...parts.slice(1)];
+};
+
 export class ReplaySystem {
   constructor(frames) {
-    this.frames = frames;
+    this.frames = frames.map(parseFrame);
     this.frameIndex = 0;
-    this.ticksRemaining = frames.length > 0 ? frames[0][0] : 0;
+    this.ticksRemaining = this.frames.length > 0 ? this.frames[0][0] : 0;
   }
 
   get done() {

@@ -1,180 +1,4 @@
 {
-  "frames": [
-    [
-      53,
-      "right"
-    ],
-    [
-      13,
-      "right"
-    ],
-    [
-      11,
-      "right"
-    ],
-    [
-      9,
-      "right"
-    ],
-    [
-      15,
-      "harddrop"
-    ],
-    [
-      6,
-      "harddrop_release"
-    ],
-    [
-      27,
-      "right"
-    ],
-    [
-      10,
-      "harddrop"
-    ],
-    [
-      5,
-      "harddrop_release"
-    ],
-    [
-      6,
-      "left"
-    ],
-    [
-      26,
-      "harddrop"
-    ],
-    [
-      7,
-      "harddrop_release"
-    ],
-    [
-      3,
-      "left"
-    ],
-    [
-      19,
-      "left"
-    ],
-    [
-      13,
-      "right"
-    ],
-    [
-      11,
-      "right"
-    ],
-    [
-      12,
-      "right"
-    ],
-    [
-      9,
-      "right"
-    ],
-    [
-      22,
-      "harddrop"
-    ],
-    [
-      3,
-      "harddrop_release"
-    ],
-    [
-      13,
-      "left"
-    ],
-    [
-      9,
-      "left"
-    ],
-    [
-      9,
-      "left"
-    ],
-    [
-      16,
-      "left"
-    ],
-    [
-      14,
-      "harddrop"
-    ],
-    [
-      6,
-      "harddrop_release"
-    ],
-    [
-      9,
-      "left"
-    ],
-    [
-      12,
-      "left"
-    ],
-    [
-      10,
-      "left"
-    ],
-    [
-      15,
-      "harddrop"
-    ],
-    [
-      5,
-      "harddrop_release"
-    ],
-    [
-      23,
-      "left"
-    ],
-    [
-      10,
-      "left"
-    ],
-    [
-      11,
-      "left"
-    ],
-    [
-      11,
-      "harddrop"
-    ],
-    [
-      5,
-      "harddrop_release"
-    ],
-    [
-      12,
-      "right"
-    ],
-    [
-      12,
-      "right"
-    ],
-    [
-      55,
-      "left"
-    ],
-    [
-      27,
-      "harddrop"
-    ],
-    [
-      5,
-      "harddrop_release"
-    ],
-    [
-      214
-    ]
-  ],
-  "boardHeight": 24,
-  "gravityMode": "sticky",
-  "manualShake": true,
-  "gameMode": "a",
-  "startLevel": 1,
-  "garbageHeight": 0,
-  "sparsity": 0,
   "expectedGrid": [
     "7         ",
     "777       ",
@@ -183,5 +7,56 @@
     "5555  88  ",
     "   33288 1",
     "  33222111"
+  ],
+  "boardHeight": 24,
+  "gravityMode": "sticky",
+  "manualShake": true,
+  "gameMode": "a",
+  "startLevel": 1,
+  "garbageHeight": 0,
+  "sparsity": 0,
+  "frames": [
+    "53|right",
+    "13|right",
+    "11|right",
+    "9|right",
+    "15|harddrop",
+    "6|harddrop_release",
+    "27|right",
+    "10|harddrop",
+    "5|harddrop_release",
+    "6|left",
+    "26|harddrop",
+    "7|harddrop_release",
+    "3|left",
+    "19|left",
+    "13|right",
+    "11|right",
+    "12|right",
+    "9|right",
+    "22|harddrop",
+    "3|harddrop_release",
+    "13|left",
+    "9|left",
+    "9|left",
+    "16|left",
+    "14|harddrop",
+    "6|harddrop_release",
+    "9|left",
+    "12|left",
+    "10|left",
+    "15|harddrop",
+    "5|harddrop_release",
+    "23|left",
+    "10|left",
+    "11|left",
+    "11|harddrop",
+    "5|harddrop_release",
+    "12|right",
+    "12|right",
+    "55|left",
+    "27|harddrop",
+    "5|harddrop_release",
+    "214"
   ]
 }

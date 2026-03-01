@@ -72,6 +72,31 @@ canvas {
   text-align: right;
 }
 
+.replay-controls {
+  position: absolute;
+  top: calc(var(--cell-size) * 8.5);
+  display: flex;
+  gap: calc(var(--cell-size) * 0.3);
+}
+
+.replay-controls button {
+  @apply bg-neutral-700 text-white border-none rounded cursor-pointer;
+  font-family: monospace;
+  font-size: var(--font-size);
+  width: calc(var(--cell-size) * 1.1);
+  height: calc(var(--cell-size) * 1.1);
+  padding: 0;
+  line-height: 1;
+}
+
+.replay-controls button:hover {
+  @apply bg-neutral-600;
+}
+
+.replay-controls button.active {
+  @apply bg-amber-600;
+}
+
 .controls-help {
   @apply border-collapse text-neutral-600;
   font-size: var(--help-font-size);

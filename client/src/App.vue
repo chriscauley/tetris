@@ -18,6 +18,7 @@ let world = null
 let gameAnimId = null
 let replayAnimId = null
 let isPlayWorld = false
+let currentRecording = null
 let currentSettings = {
   boardHeight: 20,
   gravityMode: 'normal',
@@ -52,6 +53,8 @@ const game = reactive({
 const canvas = ref(null)
 const paused = ref(false)
 const replaying = ref(false)
+const replayPaused = ref(false)
+const replayFastForward = ref(false)
 const animSlowdown = ref(1)
 const dialogs = reactive({
   newGame: false,
@@ -267,6 +270,9 @@ const copyReplay = () => {
 const startReplay = (recording) => {
   stopReplay()
   stopGameLoop()
+  currentRecording = recording
+  replayPaused.value = false
+  replayFastForward.value = false
   isPlayWorld = false
   world = createGame(canvas.value, { ...recording, visualHeight: VISUAL_HEIGHT, mode: 'replay', recording })
   replaying.value = true
@@ -277,15 +283,17 @@ const startReplay = (recording) => {
   const replayLoop = (time) => {
     const delta = Math.min(time - lastTime, 100)
     lastTime = time
-    accumulator += delta
+    if (!replayPaused.value) {
+      accumulator += delta * (replayFastForward.value ? 5 : 1)
 
-    while (accumulator >= TICK_MS) {
-      accumulator -= TICK_MS
-      const more = world.replayTick()
-      if (!more) {
-        readWorldState()
-        stopReplay()
-        return
+      while (accumulator >= TICK_MS) {
+        accumulator -= TICK_MS
+        const more = world.replayTick()
+        if (!more) {
+          readWorldState()
+          stopReplay()
+          return
+        }
       }
     }
 
@@ -295,6 +303,15 @@ const startReplay = (recording) => {
 
   replayAnimId = requestAnimationFrame(replayLoop)
 }
+
+const replayRestart = () => startReplay(currentRecording)
+const replayJumpToEnd = () => {
+  while (world.replayTick()) {}
+  readWorldState()
+  stopReplay()
+}
+const replayTogglePause = () => { replayPaused.value = !replayPaused.value }
+const replayToggleFastForward = () => { replayFastForward.value = !replayFastForward.value }
 
 const loadReplay = async () => {
   try {
@@ -359,6 +376,12 @@ onMounted(() => {
     <table class="score-block">
       <tr v-for="[label, value] in scoreRows" :key="label"><td>{{ label }}</td><td>{{ value }}</td></tr>
     </table>
+    <div v-if="replaying" class="replay-controls">
+      <button @click="replayRestart">⏮</button>
+      <button @click="replayTogglePause">{{ replayPaused ? '▶' : '⏸' }}</button>
+      <button @click="replayJumpToEnd">⏭</button>
+      <button :class="{ active: replayFastForward }" @click="replayToggleFastForward">⏩</button>
+    </div>
     <table class="controls-help">
       <tr v-for="[key, desc] in controlRows" :key><td>{{ key }}</td><td>{{ desc }}</td></tr>
     </table>

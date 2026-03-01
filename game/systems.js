@@ -576,6 +576,7 @@ export class LineClearSystem {
 
   performShake(world, boardId) {
     const board = world.getComponent(boardId, 'Board');
+    if (board.shakeAnimation) board.screenShake = { timer: 0, duration: 12 };
     const table = world.getComponent(boardId, 'PieceTable');
     const score = world.getComponent(boardId, 'Score');
     const gm = world.getComponent(boardId, 'GameMode');

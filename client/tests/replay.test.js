@@ -3,7 +3,7 @@ import { join, basename } from 'node:path'
 import { describe, it, expect } from 'vitest'
 import { createGame } from '@game/tetris.js'
 
-const replayDir = new URL('./replays', import.meta.url).pathname
+const replayDir = new URL('../../replays', import.meta.url).pathname
 const replayFiles = readdirSync(replayDir).filter((f) => f.endsWith('.json'))
 const replays = replayFiles.map((f) => ({
   name: basename(f, '.json'),
@@ -11,17 +11,7 @@ const replays = replayFiles.map((f) => ({
 }))
 
 function runReplay(recording) {
-  const world = createGame(null, {
-    seed: recording.seed,
-    boardHeight: recording.boardHeight,
-    gravityMode: recording.gravityMode || (recording.cascadeGravity ? 'cascade' : 'normal'),
-    mode: 'replay',
-    recording,
-    gameMode: recording.gameMode || 'a',
-    startLevel: recording.startLevel || 1,
-    garbageHeight: recording.garbageHeight || 0,
-    sparsity: recording.sparsity || 0,
-  })
+  const world = createGame(null, { ...recording, mode: 'replay', recording })
   while (world.replayTick()) {
     /* advance until done */
   }

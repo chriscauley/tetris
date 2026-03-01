@@ -16,7 +16,7 @@ const decodeCell = (ch) => {
   return i >= 0 ? i : null;
 }
 
-export const createGame = (canvas, { boardWidth = 10, boardHeight = 24, seed, mode = 'play', recording, gravityMode = 'normal', cascadeGravity, visualHeight = 20, gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0, manualShake = false } = {}) => {
+export const createGame = (canvas, { boardWidth = 10, boardHeight = 24, seed, mode = 'play', recording, gravityMode = 'normal', cascadeGravity, visualHeight = 20, gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0, manualShake = false, shakeAnimation = false } = {}) => {
   const resolvedGravityMode = gravityMode !== 'normal' ? gravityMode : (cascadeGravity ? 'cascade' : 'normal');
   const rng = seedrandom(seed, { state: true });
   const world = new World();
@@ -25,6 +25,7 @@ export const createGame = (canvas, { boardWidth = 10, boardHeight = 24, seed, mo
   const boardId = world.createEntity();
   const linesGoal = gameMode === 'b' ? 25 : null;
   world.addComponent(boardId, 'Board', Components.Board(boardWidth, boardHeight, resolvedGravityMode, visualHeight, manualShake));
+  world.getComponent(boardId, 'Board').shakeAnimation = shakeAnimation;
   world.addComponent(boardId, 'Score', Components.Score(startLevel));
   world.addComponent(boardId, 'GameState', Components.GameState());
   world.addComponent(boardId, 'NextQueue', Components.NextQueue(rng));
@@ -175,7 +176,9 @@ export const createGame = (canvas, { boardWidth = 10, boardHeight = 24, seed, mo
             grid,
             gravityMode: data.gravityMode || (data.cascadeGravity ? 'cascade' : 'normal'),
             manualShake: data.manualShake || false,
+            shakeAnimation: data.shakeAnimation || false,
             shakeRequested: false,
+            screenShake: null,
             cascadeAnimQueue: [],
             cascadeAnim: null,
             gridVersion: 0,

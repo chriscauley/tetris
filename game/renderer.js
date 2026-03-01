@@ -85,8 +85,17 @@ export class RenderSystem {
 
     const ctx = this.ctx;
     const cs = this.cellSize;
-    const ox = this.boardOffsetX;
+    let ox = this.boardOffsetX;
     const oy = this.boardOffsetY;
+
+    // Screen shake offset
+    if (board.screenShake) {
+      const s = board.screenShake;
+      const t = s.timer / s.duration;
+      ox += Math.sin(s.timer * 2.5) * cs * 0.3 * (1 - t);
+      s.timer++;
+      if (s.timer >= s.duration) board.screenShake = null;
+    }
 
     // Background
     ctx.fillStyle = '#111';

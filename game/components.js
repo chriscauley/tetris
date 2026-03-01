@@ -2,7 +2,7 @@ export const Components = {
   Board(w = 10, h = 20, gravityMode = 'normal', visualHeight = 20, manualShake = false) {
     const bufferHeight = 4;
     const grid = Array.from({ length: h + bufferHeight }, () => Array(w).fill(null));
-    return { width: w, height: h, bufferHeight, visualHeight, grid, gravityMode, manualShake, shakeRequested: false, cascadeAnimQueue: [], cascadeAnim: null, gridVersion: 0 };
+    return { width: w, height: h, bufferHeight, visualHeight, grid, gravityMode, manualShake, shakeRequested: false, shakeAnimation: false, screenShake: null, cascadeAnimQueue: [], cascadeAnim: null, gridVersion: 0 };
   },
   ActivePiece(type, x, y, rotation = 0, pieceId = null) {
     return { type, x, y, rotation, pieceId };

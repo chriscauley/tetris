@@ -7,24 +7,35 @@ import NewGameForm from './components/NewGameForm.vue'
 import ControlsForm from './components/ControlsForm.vue'
 import DebugForm from './components/DebugForm.vue'
 
-const replayTests = Object.entries(
-  import.meta.glob('@replays/*.json', { eager: true })
-).map(([path, mod]) => ({ name: path.split('/').pop().replace('.json', ''), recording: mod.default }))
+const replayTests = Object.entries(import.meta.glob('@replays/*.json', { eager: true })).map(([path, mod]) => ({
+  name: path.split('/').pop().replace('.json', ''),
+  recording: mod.default,
+}))
 
 // Constants
 const TICK_MS = 16
 const VISUAL_HEIGHT = 20
 
 const MULTIPLAYER_P1_KEYS = {
-  left: ['KeyA'], right: ['KeyD'], softdrop: ['KeyS'], harddrop: ['KeyF'],
-  rotate_cw: ['KeyW', 'KeyX'], rotate_ccw: ['KeyQ', 'KeyZ'],
-  hold: ['KeyE', 'KeyC'], shake: ['KeyR', 'KeyV'],
+  left: ['KeyA'],
+  right: ['KeyD'],
+  softdrop: ['KeyS'],
+  harddrop: ['KeyF'],
+  rotate_cw: ['KeyW', 'KeyX'],
+  rotate_ccw: ['KeyQ', 'KeyZ'],
+  hold: ['KeyE', 'KeyC'],
+  shake: ['KeyR', 'KeyV'],
 }
 
 const MULTIPLAYER_P2_KEYS = {
-  left: ['KeyJ'], right: ['KeyL'], softdrop: ['KeyK'], harddrop: ['KeyH'],
-  rotate_cw: ['KeyI', 'Comma'], rotate_ccw: ['KeyO', 'Period'],
-  hold: ['KeyU', 'KeyM'], shake: ['KeyY', 'KeyN'],
+  left: ['KeyJ'],
+  right: ['KeyL'],
+  softdrop: ['KeyK'],
+  harddrop: ['KeyH'],
+  rotate_cw: ['KeyI', 'Comma'],
+  rotate_ccw: ['KeyO', 'Period'],
+  hold: ['KeyU', 'KeyM'],
+  shake: ['KeyY', 'KeyN'],
 }
 
 // Game engine (non-reactive)
@@ -90,14 +101,21 @@ const replayJson = ref('')
 
 // Computed styles
 const CODE_DISPLAY_SHORT = {
-  ArrowLeft: '\u2190', ArrowRight: '\u2192', ArrowUp: '\u2191', ArrowDown: '\u2193',
-  Space: 'Space', ShiftLeft: 'Shift', ShiftRight: 'Shift',
-  ControlLeft: 'Ctrl', ControlRight: 'Ctrl',
-  Comma: ',', Period: '.',
+  ArrowLeft: '\u2190',
+  ArrowRight: '\u2192',
+  ArrowUp: '\u2191',
+  ArrowDown: '\u2193',
+  Space: 'Space',
+  ShiftLeft: 'Shift',
+  ShiftRight: 'Shift',
+  ControlLeft: 'Ctrl',
+  ControlRight: 'Ctrl',
+  Comma: ',',
+  Period: '.',
 }
 const shortCode = (c) => CODE_DISPLAY_SHORT[c] || c.replace(/^Key/, '').replace(/^Digit/, '')
 
-const linesDisplay = (p) => p.linesGoal !== null ? p.lines + ' / ' + p.linesGoal : '' + p.lines
+const linesDisplay = (p) => (p.linesGoal !== null ? p.lines + ' / ' + p.linesGoal : '' + p.lines)
 
 const scoreRows = (p) => [
   ['SCORE', p.score],
@@ -115,10 +133,14 @@ const controlRows = (idx) => {
   const row = (action, label) => [km[action]?.map(shortCode).join(' ') || '', label]
   const p = players[idx]
   const rows = [
-    row('left', 'Move Left'), row('right', 'Move Right'),
-    row('rotate_cw', 'Rotate CW'), row('rotate_ccw', 'Rotate CCW'),
-    row('softdrop', 'Soft Drop'), row('harddrop', 'Hard Drop'),
-    row('hold', 'Hold'), ['Esc', 'Pause'],
+    row('left', 'Move Left'),
+    row('right', 'Move Right'),
+    row('rotate_cw', 'Rotate CW'),
+    row('rotate_ccw', 'Rotate CCW'),
+    row('softdrop', 'Soft Drop'),
+    row('harddrop', 'Hard Drop'),
+    row('hold', 'Hold'),
+    ['Esc', 'Pause'],
   ]
   if (p.gravityMode !== 'normal' && p.manualShake) rows.push(row('shake', 'Shake'))
   return rows
@@ -165,9 +187,7 @@ const readWorldState = (idx) => {
     p.linesGoal = gm.linesGoal
   }
   const apIds = world.query('ActivePiece')
-  p.activePieceId = apIds.length > 0
-    ? (world.getComponent(apIds[0], 'ActivePiece')?.pieceId ?? null)
-    : null
+  p.activePieceId = apIds.length > 0 ? (world.getComponent(apIds[0], 'ActivePiece')?.pieceId ?? null) : null
 }
 
 // Game loop
@@ -232,7 +252,18 @@ const createWorlds = (settings, pc) => {
 
 const startGame = async (settings = {}) => {
   stopReplay()
-  const { seed, playerCount: rawPc = 1, boardHeight = 24, gravityMode = 'normal', manualShake = false, shakeAnimation = false, gameMode = 'a', startLevel = 1, garbageHeight = 0, sparsity = 0 } = settings
+  const {
+    seed,
+    playerCount: rawPc = 1,
+    boardHeight = 24,
+    gravityMode = 'normal',
+    manualShake = false,
+    shakeAnimation = false,
+    gameMode = 'a',
+    startLevel = 1,
+    garbageHeight = 0,
+    sparsity = 0,
+  } = settings
   const pc = Number(rawPc) || 1
 
   const sameConfig =
@@ -248,7 +279,17 @@ const startGame = async (settings = {}) => {
     garbageHeight === currentSettings.garbageHeight &&
     sparsity === currentSettings.sparsity
 
-  Object.assign(currentSettings, { playerCount: pc, boardHeight, gravityMode, manualShake, shakeAnimation, gameMode, startLevel, garbageHeight, sparsity })
+  Object.assign(currentSettings, {
+    playerCount: pc,
+    boardHeight,
+    gravityMode,
+    manualShake,
+    shakeAnimation,
+    gameMode,
+    startLevel,
+    garbageHeight,
+    sparsity,
+  })
 
   if (sameConfig) {
     for (let i = 0; i < pc; i++) worlds[i].restart(seed)
@@ -276,7 +317,9 @@ const onNewGameSubmit = (data) => {
   startGame(data)
 }
 
-const onNewGameCancel = () => { dialogs.newGame = false }
+const onNewGameCancel = () => {
+  dialogs.newGame = false
+}
 
 // State dialog (P1 only)
 const copyState = () => {
@@ -371,12 +414,16 @@ const startReplay = (recording) => {
 
 const replayRestart = () => startReplay(currentRecording)
 const replayJumpToEnd = () => {
-  while (worlds[0].replayTick()) {}
+  while (worlds[0].replayTick()) {} // eslint-disable-line no-empty
   readWorldState(0)
   stopReplay()
 }
-const replayTogglePause = () => { replayPaused.value = !replayPaused.value }
-const replayToggleFastForward = () => { replayFastForward.value = !replayFastForward.value }
+const replayTogglePause = () => {
+  replayPaused.value = !replayPaused.value
+}
+const replayToggleFastForward = () => {
+  replayFastForward.value = !replayFastForward.value
+}
 
 const loadReplay = async () => {
   try {
@@ -407,17 +454,25 @@ const startReplayTest = (recording) => {
 }
 
 // Controls dialog
-const onControls = () => { dialogs.controls = true }
+const onControls = () => {
+  dialogs.controls = true
+}
 const onControlsSubmit = (keyMap) => {
   dialogs.controls = false
   currentKeyMap.value = keyMap
   localStorage.setItem('tetris-controls', JSON.stringify(keyMap))
   isPlayWorld = false
 }
-const onControlsCancel = () => { dialogs.controls = false }
+const onControlsCancel = () => {
+  dialogs.controls = false
+}
 
-const openDebugSettings = () => { dialogs.debug = true }
-const closeDebugSettings = () => { dialogs.debug = false }
+const openDebugSettings = () => {
+  dialogs.debug = true
+}
+const closeDebugSettings = () => {
+  dialogs.debug = false
+}
 
 // Init
 onMounted(() => {
@@ -431,7 +486,10 @@ onMounted(() => {
       for (let i = 0; i < playerCount.value; i++) {
         if (!worlds[i]) continue
         const state = worlds[i].getComponent(worlds[i].boardId, 'GameState')
-        if (state.phase !== 'gameover' && state.phase !== 'victory') { anyPlaying = true; break }
+        if (state.phase !== 'gameover' && state.phase !== 'victory') {
+          anyPlaying = true
+          break
+        }
       }
       if (!anyPlaying) return
       paused.value = !paused.value
@@ -440,9 +498,15 @@ onMounted(() => {
       // In multiplayer, R restarts when all players are done
       let allDone = true
       for (let i = 0; i < playerCount.value; i++) {
-        if (!worlds[i]) { allDone = false; break }
+        if (!worlds[i]) {
+          allDone = false
+          break
+        }
         const state = worlds[i].getComponent(worlds[i].boardId, 'GameState')
-        if (state.phase !== 'gameover' && state.phase !== 'victory') { allDone = false; break }
+        if (state.phase !== 'gameover' && state.phase !== 'victory') {
+          allDone = false
+          break
+        }
       }
       if (allDone) {
         const seed = worlds[0].seed
@@ -470,88 +534,100 @@ onMounted(() => {
 
 <template>
   <div class="game-container">
-  <div v-for="(p, idx) in activePlayers" :key="idx" class="player-area game-area" :style="playerAreaStyle(idx)">
-    <canvas :ref="el => canvasRefs[idx].value = el"></canvas>
+    <div v-for="(p, idx) in activePlayers" :key="idx" class="player-area game-area" :style="playerAreaStyle(idx)">
+      <canvas :ref="(el) => (canvasRefs[idx].value = el)"></canvas>
 
-    <!-- Left panel: HOLD, score info, controls -->
-    <div v-if="p.cellSize > 0" class="side-panel --left">
-      <div class="label">HOLD</div>
-      <table class="score-block">
-        <tr v-for="[label, value] in scoreRows(p)" :key="label"><td>{{ label }}</td><td>{{ value }}</td></tr>
-      </table>
-      <div v-if="replaying && idx === 0" class="replay-controls">
-        <button @click="replayRestart">⏮</button>
-        <button @click="replayTogglePause">{{ replayPaused ? '▶' : '⏸' }}</button>
-        <button @click="replayJumpToEnd">⏭</button>
-        <button :class="{ active: replayFastForward }" @click="replayToggleFastForward">⏩</button>
+      <!-- Left panel: HOLD, score info, controls -->
+      <div v-if="p.cellSize > 0" class="side-panel --left">
+        <div class="label">HOLD</div>
+        <table class="score-block">
+          <tbody>
+            <tr v-for="[label, value] in scoreRows(p)" :key="label">
+              <td>{{ label }}</td>
+              <td>{{ value }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="replaying && idx === 0" class="replay-controls">
+          <button @click="replayRestart">⏮</button>
+          <button @click="replayTogglePause">{{ replayPaused ? '▶' : '⏸' }}</button>
+          <button @click="replayJumpToEnd">⏭</button>
+          <button :class="{ active: replayFastForward }" @click="replayToggleFastForward">⏩</button>
+        </div>
+        <table class="controls-help">
+          <tbody>
+            <tr v-for="[key, desc] in controlRows(idx)" :key>
+              <td>{{ key }}</td>
+              <td>{{ desc }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <table class="controls-help">
-        <tr v-for="[key, desc] in controlRows(idx)" :key><td>{{ key }}</td><td>{{ desc }}</td></tr>
-      </table>
-    </div>
 
-    <!-- Right panel: NEXT -->
-    <div v-if="p.cellSize > 0" class="side-panel --right">
-      <div class="label">NEXT</div>
-    </div>
+      <!-- Right panel: NEXT -->
+      <div v-if="p.cellSize > 0" class="side-panel --right">
+        <div class="label">NEXT</div>
+      </div>
 
-    <!-- Game over overlay -->
-    <div v-if="p.phase === 'gameover' && p.cellSize > 0" class="game-over-overlay">
-      <div class="game-over-text">GAME OVER</div>
-      <div class="game-over-sub">Press R to restart</div>
-    </div>
+      <!-- Game over overlay -->
+      <div v-if="p.phase === 'gameover' && p.cellSize > 0" class="game-over-overlay">
+        <div class="game-over-text">GAME OVER</div>
+        <div class="game-over-sub">Press R to restart</div>
+      </div>
 
-    <!-- Victory overlay -->
-    <div v-if="p.phase === 'victory' && p.cellSize > 0" class="game-over-overlay">
-      <div class="game-over-text">SUCCESS!</div>
-      <div class="game-over-sub">25 Lines Cleared!</div>
-      <div class="game-over-sub">Press R to play again</div>
-    </div>
+      <!-- Victory overlay -->
+      <div v-if="p.phase === 'victory' && p.cellSize > 0" class="game-over-overlay">
+        <div class="game-over-text">SUCCESS!</div>
+        <div class="game-over-sub">25 Lines Cleared!</div>
+        <div class="game-over-sub">Press R to play again</div>
+      </div>
 
-    <!-- Pause overlay -->
-    <div v-if="paused && p.phase !== 'gameover' && p.phase !== 'victory' && p.cellSize > 0" class="game-over-overlay">
-      <div class="game-over-text">PAUSED</div>
-      <div class="game-over-sub">Press Esc to resume</div>
+      <!-- Pause overlay -->
+      <div v-if="paused && p.phase !== 'gameover' && p.phase !== 'victory' && p.cellSize > 0" class="game-over-overlay">
+        <div class="game-over-text">PAUSED</div>
+        <div class="game-over-sub">Press Esc to resume</div>
+      </div>
     </div>
-  </div>
   </div>
 
   <!-- Debug panel -->
   <div class="debug-panel">
     <table>
-      <tr>
-        <td class="debug-label">piece</td>
-        <td>{{ players[0].activePieceId ?? '—' }}</td>
-      </tr>
-      <tr>
-        <td class="debug-label">highest</td>
-        <td>{{ players[0].highestBlock }}</td>
-      </tr>
-      <tr>
-        <td class="debug-label">seed</td>
-        <td>{{ players[0].seed ?? '—' }}</td>
-      </tr>
-      <tr>
-        <td class="debug-label">height</td>
-        <td>{{ players[0].boardHeight }}</td>
-      </tr>
-      <tr>
-        <td class="debug-label">gravity</td>
-        <td>{{ players[0].gravityMode }}</td>
-      </tr>
+      <tbody>
+        <tr>
+          <td class="debug-label">piece</td>
+          <td>{{ players[0].activePieceId ?? '—' }}</td>
+        </tr>
+        <tr>
+          <td class="debug-label">highest</td>
+          <td>{{ players[0].highestBlock }}</td>
+        </tr>
+        <tr>
+          <td class="debug-label">seed</td>
+          <td>{{ players[0].seed ?? '—' }}</td>
+        </tr>
+        <tr>
+          <td class="debug-label">height</td>
+          <td>{{ players[0].boardHeight }}</td>
+        </tr>
+        <tr>
+          <td class="debug-label">gravity</td>
+          <td>{{ players[0].gravityMode }}</td>
+        </tr>
+      </tbody>
     </table>
   </div>
 
   <div class="btn-row">
     <button class="btn -secondary" @click="onNewGame">New Game</button>
     <template v-if="playerCount === 1">
-      <button  class="btn -secondary" @click="copyState">Copy State</button>
-      <button  class="btn -secondary" @click="showState">Show State</button>
-      <button  class="btn -secondary" @click="copyReplay">Copy Replay</button>
-      <button  class="btn -secondary" @click="showReplay">Show Replay</button>
-      <button  class="btn -secondary" @click="loadReplay">Load Replay</button>
-      <button  class="btn -secondary" @click="dialogs.replayTests = true">Replay Tests</button>
-      <button  class="btn -secondary" @click="onControls">Controls</button>
+      <button class="btn -secondary" @click="copyState">Copy State</button>
+      <button class="btn -secondary" @click="showState">Show State</button>
+      <button class="btn -secondary" @click="copyReplay">Copy Replay</button>
+      <button class="btn -secondary" @click="showReplay">Show Replay</button>
+      <button class="btn -secondary" @click="loadReplay">Load Replay</button>
+      <button class="btn -secondary" @click="dialogs.replayTests = true">Replay Tests</button>
+      <button class="btn -secondary" @click="onControls">Controls</button>
       <button class="btn -secondary" @click="openDebugSettings">Debug</button>
     </template>
   </div>

@@ -24,11 +24,7 @@ const gravityOptions = [
   { value: 'sticky', label: 'Sticky' },
 ]
 
-const levelOptions = [
-  { value: 0, label: '0 (turn based play)' },
-  ...range(1, 10),
-]
-
+const levelOptions = [{ value: 0, label: '0 (turn based play)' }, ...range(1, 10)]
 </script>
 
 <template>

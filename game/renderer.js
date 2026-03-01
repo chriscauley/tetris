@@ -76,6 +76,7 @@ export class RenderSystem {
       cellSize: this.cellSize,
       boardX: this.boardOffsetX,
       boardY: this.visualTop,
+      boardRenderY: this.boardOffsetY,
       highestRow: highestRow < board.height ? board.height - highestRow : 0,
       seed: world.seed,
       boardHeight: board.height,

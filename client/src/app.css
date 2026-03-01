@@ -131,9 +131,9 @@ canvas {
 .game-over-overlay {
   @apply absolute flex flex-col items-center justify-center z-5 bg-black/75;
   left: var(--board-x);
-  top: var(--board-y);
+  top: var(--board-render-y);
   width: var(--board-w);
-  height: var(--board-h);
+  height: calc(var(--board-rows, 20) * var(--cell-size));
 }
 
 .game-over-text {

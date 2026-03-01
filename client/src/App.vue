@@ -62,6 +62,7 @@ const makePlayerState = () => ({
   cellSize: 0,
   boardX: 0,
   boardY: 0,
+  boardRenderY: 0,
   score: 0,
   lines: 0,
   level: 1,
@@ -152,6 +153,8 @@ const playerAreaStyle = (idx) => {
     '--cell-size': p.cellSize + 'px',
     '--board-x': p.boardX + 'px',
     '--board-y': p.boardY + 'px',
+    '--board-render-y': p.boardRenderY + 'px',
+    '--board-rows': p.boardHeight,
   }
 }
 
@@ -165,6 +168,7 @@ const readWorldState = (idx) => {
     p.cellSize = ui.cellSize
     p.boardX = ui.boardX
     p.boardY = ui.boardY
+    p.boardRenderY = ui.boardRenderY ?? ui.boardY
     p.highestBlock = ui.highestRow ?? 0
     p.seed = ui.seed ?? ''
     p.boardHeight = ui.boardHeight ?? 24

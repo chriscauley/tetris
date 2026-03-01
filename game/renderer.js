@@ -62,7 +62,7 @@ export class RenderSystem {
       const linesFromBottom = board.height - highestRow;
       const scrollRows = Math.max(0, linesFromBottom - 12);
       const baseY = this.visualTop + (VISUAL_HEIGHT - board.height) * this.cellSize;
-      this.scrollTarget = Math.min(baseY + scrollRows * this.cellSize, 0);
+      this.scrollTarget = Math.min(baseY + scrollRows * this.cellSize, this.baseBoardOffsetY);
       // Lerp toward target
       const diff = this.scrollTarget - this.boardOffsetY;
       if (Math.abs(diff) < 0.5) {

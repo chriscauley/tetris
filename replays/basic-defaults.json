@@ -1,0 +1,19 @@
+{
+  "seed": "test",
+  "boardHeight": 24,
+  "gravityMode": "normal",
+  "gameMode": "a",
+  "startLevel": 1,
+  "garbageHeight": 0,
+  "sparsity": 0,
+  "manualShake": false,
+  "frames": [
+    [1, "left"], [1, "left"], [1, "left"], [1, "harddrop"], [1, "harddrop_release"],
+    [1, "harddrop"], [1, "harddrop_release"],
+    [1, "right"], [1, "right"], [1, "right"], [1, "harddrop"], [1, "harddrop_release"],
+    [1, "left"], [1, "left"], [1, "left"], [1, "left"], [1, "rotate_cw"], [1, "harddrop"], [1, "harddrop_release"],
+    [1, "right"], [1, "right"], [1, "right"], [1, "right"], [1, "harddrop"], [1, "harddrop_release"],
+    [1]
+  ],
+  "expectedGrid": ["  4       ", "  4      5", "  4    555", "1 4 2  33 ", "111222 33 "]
+}

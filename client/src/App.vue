@@ -5,6 +5,10 @@ import UnrestDialog from './components/UnrestDialog.vue'
 import NewGameForm from './components/NewGameForm.vue'
 import DebugForm from './components/DebugForm.vue'
 
+const replayTests = Object.entries(
+  import.meta.glob('@replays/*.json', { eager: true })
+).map(([path, mod]) => ({ name: path.split('/').pop().replace('.json', ''), recording: mod.default }))
+
 // Constants
 const TICK_MS = 16
 const VISUAL_HEIGHT = 20
@@ -53,6 +57,7 @@ const dialogs = reactive({
   state: false,
   replay: false,
   debug: false,
+  replayTests: false,
 })
 const newGameDefaults = ref({})
 const stateJson = ref('')
@@ -310,6 +315,11 @@ watch(animSlowdown, () => {
   world.debug.animSlowdown = animSlowdown.value
 })
 
+const startReplayTest = (recording) => {
+  dialogs.replayTests = false
+  startReplay(recording)
+}
+
 const openDebugSettings = () => { dialogs.debug = true }
 const closeDebugSettings = () => { dialogs.debug = false }
 
@@ -409,6 +419,7 @@ onMounted(() => {
     <button class="btn -secondary" @click="copyReplay">Copy Replay</button>
     <button class="btn -secondary" @click="showReplay">Show Replay</button>
     <button class="btn -secondary" @click="loadReplay">Load Replay</button>
+    <button class="btn -secondary" @click="dialogs.replayTests = true">Replay Tests</button>
     <button class="btn -secondary" @click="openDebugSettings">Debug</button>
   </div>
 
@@ -428,6 +439,15 @@ onMounted(() => {
 
   <UnrestDialog :open="dialogs.debug" title="Debug Settings" @close="closeDebugSettings">
     <DebugForm v-model="animSlowdown" @close="closeDebugSettings" />
+  </UnrestDialog>
+
+  <UnrestDialog :open="dialogs.replayTests" title="Replay Tests" @close="dialogs.replayTests = false">
+    <div v-for="test in replayTests" :key="test.name">
+      <button class="btn -secondary" @click="startReplayTest(test.recording)">{{ test.name }}</button>
+    </div>
+    <template #actions>
+      <button class="btn -secondary" type="button" @click="dialogs.replayTests = false">Close</button>
+    </template>
   </UnrestDialog>
 
   <UnrestDialog :open="dialogs.newGame" title="New Game" @close="onNewGameCancel">

@@ -11,4 +11,7 @@ urlpatterns = [
     path('game-settings', views.game_settings),
     path('plays', views.plays),
     path('plays/<int:play_id>', views.play_detail),
+    path('lobby/games', views.lobby_games),
+    path('lobby/games/<int:game_id>/join', views.join_game),
+    path('lobby/chat', views.lobby_chat),
 ]

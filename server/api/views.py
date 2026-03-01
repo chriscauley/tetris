@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
-from .models import GameSettings, Play, UserSettings
+from .models import ChatMessage, GameSettings, LobbyGame, Play, UserSettings
 
 
 def login_required_json(view):
@@ -145,3 +145,59 @@ def play_detail(request, play_id):
     d['created_at'] = play.created_at.isoformat()
     d['replay'] = play.replay
     return JsonResponse(d)
+
+
+# --- Lobby ---
+
+LOBBY_GAME_SETTINGS = [
+    'gameMode', 'startLevel', 'boardHeight', 'gravityMode',
+    'garbageHeight', 'sparsity', 'manualShake',
+]
+
+def serialize_game(g):
+    d = {f: getattr(g, f) for f in LOBBY_GAME_SETTINGS}
+    d['id'] = g.id
+    d['host'] = g.host.username
+    d['createdAt'] = g.created_at.isoformat()
+    return d
+
+@login_required_json
+def lobby_games(request):
+    if request.method == 'GET':
+        games = LobbyGame.objects.filter(guest__isnull=True).select_related('host')
+        return JsonResponse([serialize_game(g) for g in games], safe=False)
+    if request.method == 'POST':
+        data = json_body(request)
+        kwargs = {f: data[f] for f in LOBBY_GAME_SETTINGS if f in data}
+        game = LobbyGame.objects.create(host=request.user, **kwargs)
+        return JsonResponse(serialize_game(game), status=201)
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+@require_POST
+@login_required_json
+def join_game(request, game_id):
+    try:
+        game = LobbyGame.objects.select_related('host').get(id=game_id)
+    except LobbyGame.DoesNotExist:
+        return JsonResponse({'error': 'Not found'}, status=404)
+    if game.guest is not None:
+        return JsonResponse({'error': 'Game already has a guest'}, status=400)
+    if game.host == request.user:
+        return JsonResponse({'error': 'Cannot join your own game'}, status=400)
+    game.guest = request.user
+    game.save()
+    return JsonResponse(serialize_game(game))
+
+
+@login_required_json
+def lobby_chat(request):
+    if request.method == 'GET':
+        msgs = ChatMessage.objects.select_related('user').order_by('-created_at')[:100]
+        result = [{'id': m.id, 'username': m.user.username, 'message': m.message, 'createdAt': m.created_at.isoformat()} for m in reversed(msgs)]
+        return JsonResponse(result, safe=False)
+    if request.method == 'POST':
+        data = json_body(request)
+        msg = ChatMessage.objects.create(user=request.user, message=data.get('message', '')[:500])
+        return JsonResponse({'id': msg.id, 'username': request.user.username, 'message': msg.message, 'createdAt': msg.created_at.isoformat()}, status=201)
+    return JsonResponse({'error': 'Method not allowed'}, status=405)

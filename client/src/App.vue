@@ -264,7 +264,7 @@ const closeReplay = () => {
 const copyReplay = () => {
   const rec = getFullRecording()
   if (!rec) return
-  navigator.clipboard.writeText(JSON.stringify(rec))
+  navigator.clipboard.writeText(JSON.stringify(rec, null, 2))
 }
 
 const startReplay = (recording) => {

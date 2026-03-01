@@ -8,6 +8,9 @@ import ControlsForm from './components/ControlsForm.vue'
 import DebugForm from './components/DebugForm.vue'
 import LoginForm from './components/LoginForm.vue'
 import RegisterForm from './components/RegisterForm.vue'
+import PlayerArea from './components/PlayerArea.vue'
+import DebugPanel from './components/DebugPanel.vue'
+import ButtonBar from './components/ButtonBar.vue'
 import { useUser, useLogout } from './stores/auth.js'
 
 const replayTests = Object.entries(import.meta.glob('@replays/*.json', { eager: true })).map(([path, mod]) => ({
@@ -567,110 +570,41 @@ onMounted(() => {
 <template>
   <div class="game-container">
     <div v-for="(p, idx) in activePlayers" :key="idx" class="player-area game-area" :style="playerAreaStyle(idx)">
-      <canvas :ref="(el) => (canvasRefs[idx].value = el)"></canvas>
-
-      <!-- Left panel: HOLD, score info, controls -->
-      <div v-if="p.cellSize > 0" class="side-panel --left">
-        <div class="label">HOLD</div>
-        <table class="score-block">
-          <tbody>
-            <tr v-for="[label, value] in scoreRows(p)" :key="label">
-              <td>{{ label }}</td>
-              <td>{{ value }}</td>
-            </tr>
-          </tbody>
-        </table>
-        <div v-if="replaying && idx === 0" class="replay-controls">
-          <button @click="replayRestart">⏮</button>
-          <button @click="replayTogglePause">{{ replayPaused ? '▶' : '⏸' }}</button>
-          <button @click="replayJumpToEnd">⏭</button>
-          <button :class="{ active: replayFastForward }" @click="replayToggleFastForward">⏩</button>
-        </div>
-        <table class="controls-help">
-          <tbody>
-            <tr v-for="[key, desc] in controlRows(idx)" :key>
-              <td>{{ key }}</td>
-              <td>{{ desc }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Right panel: NEXT -->
-      <div v-if="p.cellSize > 0" class="side-panel --right">
-        <div class="label">NEXT</div>
-      </div>
-
-      <!-- Game over overlay -->
-      <div v-if="p.phase === 'gameover' && p.cellSize > 0" class="game-over-overlay">
-        <div class="game-over-text">GAME OVER</div>
-        <div class="game-over-sub">Press R to restart</div>
-      </div>
-
-      <!-- Victory overlay -->
-      <div v-if="p.phase === 'victory' && p.cellSize > 0" class="game-over-overlay">
-        <div class="game-over-text">SUCCESS!</div>
-        <div class="game-over-sub">25 Lines Cleared!</div>
-        <div class="game-over-sub">Press R to play again</div>
-      </div>
-
-      <!-- Pause overlay -->
-      <div v-if="paused && p.phase !== 'gameover' && p.phase !== 'victory' && p.cellSize > 0" class="game-over-overlay">
-        <div class="game-over-text">PAUSED</div>
-        <div class="game-over-sub">Press Esc to resume</div>
-      </div>
+      <PlayerArea
+        :player="p"
+        :canvas-ref="(el) => (canvasRefs[idx].value = el)"
+        :score-rows="scoreRows(p)"
+        :control-rows="controlRows(idx)"
+        :replaying="replaying && idx === 0"
+        :replay-paused="replayPaused"
+        :replay-fast-forward="replayFastForward"
+        :paused
+        @replay-restart="replayRestart"
+        @replay-toggle-pause="replayTogglePause"
+        @replay-jump-to-end="replayJumpToEnd"
+        @replay-toggle-fast-forward="replayToggleFastForward"
+      />
     </div>
   </div>
 
-  <!-- Debug panel -->
-  <div class="debug-panel">
-    <table>
-      <tbody>
-        <tr>
-          <td class="debug-label">piece</td>
-          <td>{{ players[0].activePieceId ?? '—' }}</td>
-        </tr>
-        <tr>
-          <td class="debug-label">highest</td>
-          <td>{{ players[0].highestBlock }}</td>
-        </tr>
-        <tr>
-          <td class="debug-label">seed</td>
-          <td>{{ players[0].seed ?? '—' }}</td>
-        </tr>
-        <tr>
-          <td class="debug-label">height</td>
-          <td>{{ players[0].boardHeight }}</td>
-        </tr>
-        <tr>
-          <td class="debug-label">gravity</td>
-          <td>{{ players[0].gravityMode }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  <DebugPanel :player="players[0]" />
 
-  <div class="btn-row">
-    <template v-if="user">
-      <span class="text-neutral-400 text-sm font-mono self-center">{{ user.username }}</span>
-      <button class="btn -secondary" @click="logout()">Log Out</button>
-    </template>
-    <template v-else>
-      <button class="btn -secondary" @click="dialogs.login = true">Log In</button>
-      <button class="btn -secondary" @click="dialogs.register = true">Sign Up</button>
-    </template>
-    <button class="btn -secondary" @click="onNewGame">New Game</button>
-    <template v-if="playerCount === 1">
-      <button class="btn -secondary" @click="copyState">Copy State</button>
-      <button class="btn -secondary" @click="showState">Show State</button>
-      <button class="btn -secondary" @click="copyReplay">Copy Replay</button>
-      <button class="btn -secondary" @click="showReplay">Show Replay</button>
-      <button class="btn -secondary" @click="loadReplay">Load Replay</button>
-      <button class="btn -secondary" @click="dialogs.replayTests = true">Replay Tests</button>
-      <button class="btn -secondary" @click="onControls">Controls</button>
-      <button class="btn -secondary" @click="openDebugSettings">Debug</button>
-    </template>
-  </div>
+  <ButtonBar
+    :user
+    :player-count="playerCount"
+    @new-game="onNewGame"
+    @copy-state="copyState"
+    @show-state="showState"
+    @copy-replay="copyReplay"
+    @show-replay="showReplay"
+    @load-replay="loadReplay"
+    @show-replay-tests="dialogs.replayTests = true"
+    @show-controls="onControls"
+    @show-debug="openDebugSettings"
+    @login="dialogs.login = true"
+    @register="dialogs.register = true"
+    @logout="logout()"
+  />
 
   <UnrestDialog :open="dialogs.state" title="Game State" content-class="modal__content--wide" @close="closeState">
     <pre class="state-pre">{{ stateJson }}</pre>
